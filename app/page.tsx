@@ -4,18 +4,19 @@ import React, { useEffect, useState } from 'react';
 const App = () => {
   const router = useRouter();
 
+  // 初期状態
   const [params, setParams] = useState<any>({
     click_email: '',
     click_type: '',
   });
 
   useEffect(() => {
+    // クエリパラメーターを取得
     const { click_email, click_type } = router.query;
 
-    // クエリパラメーターをデコードして設定
     setParams({
-      click_email: click_email || '',
-      click_type: click_type || '',
+      click_email: click_email || '', // デフォルト値を空文字に設定
+      click_type: click_type || '', // デフォルト値を空文字に設定
     });
   }, [router.query]);
 
