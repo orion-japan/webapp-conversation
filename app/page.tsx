@@ -15,7 +15,7 @@ const Page = () => {
     const email = searchParams?.get("click_email") || "No email provided";
     const type = searchParams?.get("click_type") || "No type provided";
 
-    // 状態の更新
+    // パラメーターを状態に保存
     setParameters({ click_email: email, click_type: type });
 
     // `extract_parameters` 関数の呼び出し
@@ -23,14 +23,18 @@ const Page = () => {
   }, [searchParams]);
 
   const callExtractParameters = (email, type) => {
-    const params = {
-      click_email: email,
-      click_type: type,
-    };
+    // 必要に応じてAPI通信やロジックを追加
+    console.log("Extracted Parameters:", { click_email: email, click_type: type });
 
-    console.log("Calling extract_parameters with:", params);
-
-    // 実際の関数呼び出し（必要に応じてAPI呼び出しなどを追加）
+    // 以下は実際にAPI呼び出しを行う例
+    fetch('/api/extract_parameters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ click_email: email, click_type: type }),
+    })
+      .then((response) => response.json())
+      .then((data) => console.log("Server Response:", data))
+      .catch((error) => console.error("Error:", error));
   };
 
   return (
