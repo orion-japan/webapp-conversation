@@ -6,19 +6,18 @@ import { useSearchParams } from 'next/navigation';
 const Page = () => {
   const searchParams = useSearchParams();
   const [params, setParams] = useState({
-    click_email: "No email provided",
-    click_type: "No type provided",
+    click_email: "",
+    click_type: "",
   });
 
   useEffect(() => {
-    // クエリパラメーターを取得
-    const click_email = searchParams?.get("click_email") || "No email provided";
-    const click_type = searchParams?.get("click_type") || "No type provided";
+    const click_email = searchParams?.get("click_email") || "";
+    const click_type = searchParams?.get("click_type") || "";
 
     // 状態を更新
     setParams({ click_email, click_type });
 
-    // extract_parameters を呼び出し
+    // extract_parameters 関数の呼び出し
     extractParameters(click_email, click_type);
   }, [searchParams]);
 
@@ -28,16 +27,15 @@ const Page = () => {
       click_type: type,
     };
 
-    console.log("Extracting parameters:", parameters);
+    console.log("Calling extract_parameters with:", parameters);
 
-    // システム関数（モック例）
-    // replace this with your actual function call if necessary
+    // 実際の `extract_parameters` 呼び出し
     callExtractParameters(parameters);
   };
 
   const callExtractParameters = (parameters) => {
-    console.log("Calling extract_parameters with:", parameters);
-    // 実際の処理が必要な場合はここに書く
+    console.log("Parameters to be sent:", parameters);
+    // 必要に応じてシステムに統合
   };
 
   return (
