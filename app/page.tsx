@@ -1,25 +1,32 @@
-const extractParameters = (query) => {
-  const click_email = query.click_email || "";
-  const click_type = query.click_type || "";
-
-  // 必要なデータを整形して関数に渡す
-  return {
-    function: {
-      name: "extract_parameters",
-      arguments: {
-        click_email: click_email,
-        click_type: click_type,
-      },
-    },
+function extractParameters(context) {
+  const params = {
+    click_email: "",
+    click_type: "",
   };
-};
 
-// クエリからデータを抽出
-const query = {
+  // 入力データをパース（例: "&" 区切りの場合）
+  const pairs = context.split("&");
+  pairs.forEach((pair) => {
+    const [key, value] = pair.split("=");
+
+    if (key === "click_email" && isValidEmail(value)) {
+      params.click_email = value;
+    } else if (key === "click_type" && isValidType(value)) {
+      params.click_type = value;
+    }
+  });
+
+  return params;
+}
+
+// テスト例
+const context = "click_email=test@example.com&click_type=free";
+const extractedParams = extractParameters(context);
+
+console.log(extractedParams);
+/*
+{
   click_email: "test@example.com",
-  click_type: "free",
-};
-
-// 関数呼び出し例
-const result = extractParameters(query);
-console.log(result);
+  click_type: "free"
+}
+*/
