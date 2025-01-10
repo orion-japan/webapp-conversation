@@ -18,7 +18,7 @@ const Page = () => {
     // 状態の更新
     setParameters({ click_email: email, click_type: type });
 
-    // extract_parameters 関数の呼び出し
+    // `extract_parameters` 関数の呼び出し
     callExtractParameters(email, type);
   }, [searchParams]);
 
@@ -30,7 +30,7 @@ const Page = () => {
 
     console.log("Calling extract_parameters with:", params);
 
-    // 実際の関数呼び出しをここに追加（必要に応じてAPI通信など）
+    // 実際の関数呼び出し（必要に応じてAPI呼び出しなどを追加）
   };
 
   return (
