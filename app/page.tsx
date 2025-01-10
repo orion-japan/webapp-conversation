@@ -4,17 +4,19 @@ import { useRouter } from 'next/router';
 const App = () => {
   const router = useRouter();
   const [params, setParams] = useState({
-    click_email: "No email provided", // デフォルト値
-    click_type: "No type provided",   // デフォルト値
+    click_email: "",
+    click_type: "",
   });
 
   useEffect(() => {
-    const { click_email, click_id } = router.query;
+    console.log('Query Parameters:', router.query); // デバッグ用ログ
+
+    const { click_email, click_type, click_id } = router.query;
 
     // クエリパラメーターを設定
     setParams({
-      click_email: click_email || "No email provided",
-      click_type: click_id || "No type provided", // click_id を click_type として処理
+      click_email: click_email || "No email provided", // デフォルト値を設定
+      click_type: click_type || click_id || "No type provided", // click_id を click_type として処理
     });
   }, [router.query]);
 
