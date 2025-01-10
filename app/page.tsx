@@ -1,29 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+import type { FC } from 'react'
+import React from 'react'
 
-const App = () => {
-  const router = useRouter();
-  const [params, setParams] = useState({
-    click_email: "No email provided", // デフォルト値
-    click_type: "No type provided",   // デフォルト値
-  });
+import type { IMainProps } from '@/app/components'
+import Main from '@/app/components'
 
-  useEffect(() => {
-    const { click_email, click_type } = router.query;
-
-    setParams({
-      click_email: click_email || "No email provided",
-      click_type: click_type || "No type provided",
-    });
-  }, [router.query]);
-
+const App: FC<IMainProps> = ({
+  params,
+}: any) => {
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Welcome!</h1>
-      <p>Email: {params.click_email}</p>
-      <p>Click Type: {params.click_type}</p>
-    </div>
-  );
-};
+    <Main params={params} />
+  )
+}
 
-export default App;
+export default React.memo(App)
