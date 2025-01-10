@@ -1,5 +1,7 @@
+"use client";
+
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation'; // 修正: next/router → next/navigation
 
 const App = () => {
   const router = useRouter();
@@ -9,14 +11,13 @@ const App = () => {
   });
 
   useEffect(() => {
-    console.log('Query Parameters:', router.query); // デバッグ用ログ
+    console.log('Query Parameters:', router.query); // デバッグ用
 
-    const { click_email, click_type, click_id } = router.query;
+    const { click_email, click_id } = router.query;
 
-    // クエリパラメーターを設定
     setParams({
-      click_email: click_email || "No email provided", // デフォルト値を設定
-      click_type: click_type || click_id || "No type provided", // click_id を click_type として処理
+      click_email: click_email || "No email provided",
+      click_type: click_id || "No type provided",
     });
   }, [router.query]);
 
