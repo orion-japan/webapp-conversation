@@ -1,32 +1,25 @@
-import { useRouter } from 'next/router';
-import React, { useEffect, useState } from 'react';
+const extractParameters = (query) => {
+  const click_email = query.click_email || "";
+  const click_type = query.click_type || "";
 
-const App = () => {
-  const router = useRouter();
-
-  // 初期状態
-  const [params, setParams] = useState<any>({
-    click_email: '',
-    click_type: '',
-  });
-
-  useEffect(() => {
-    // クエリパラメーターを取得
-    const { click_email, click_type } = router.query;
-
-    setParams({
-      click_email: click_email || '', // デフォルト値を空文字に設定
-      click_type: click_type || '', // デフォルト値を空文字に設定
-    });
-  }, [router.query]);
-
-  return (
-    <div>
-      <h1>クエリパラメーター取得結果</h1>
-      <p>Email: {params.click_email || 'N/A'}</p>
-      <p>Type: {params.click_type || 'N/A'}</p>
-    </div>
-  );
+  // 必要なデータを整形して関数に渡す
+  return {
+    function: {
+      name: "extract_parameters",
+      arguments: {
+        click_email: click_email,
+        click_type: click_type,
+      },
+    },
+  };
 };
 
-export default App;
+// クエリからデータを抽出
+const query = {
+  click_email: "test@example.com",
+  click_type: "free",
+};
+
+// 関数呼び出し例
+const result = extractParameters(query);
+console.log(result);
