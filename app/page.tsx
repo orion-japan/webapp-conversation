@@ -1,36 +1,15 @@
-"use client";
+import type { FC } from 'react'
+import React from 'react'
 
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import type { IMainProps } from '@/app/components'
+import Main from '@/app/components'
 
-const Page = () => {
-  const searchParams = useSearchParams();
-  const [params, setParams] = useState({
-    click_email: "",
-    click_type: "",
-  });
-
-  useEffect(() => {
-    try {
-      const click_email = searchParams?.get("click_email") || "No email provided";
-      const click_type = searchParams?.get("click_type") || "No type provided";
-
-      setParams({
-        click_email,
-        click_type,
-      });
-    } catch (error) {
-      console.error("Error while processing query parameters:", error);
-    }
-  }, [searchParams]);
-
+const App: FC<IMainProps> = ({
+  params,
+}: any) => {
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: '50px auto', textAlign: 'center' }}>
-      <h1>Welcome!</h1>
-      <p>Email: {params.click_email}</p>
-      <p>Click Type: {params.click_type}</p>
-    </div>
-  );
-};
+    <Main params={params} />
+  )
+}
 
-export default Page;
+export default React.memo(App)
