@@ -1,31 +1,31 @@
-import type { FC } from 'react';
-import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import React, { useEffect, useState } from 'react';
 
-import type { IMainProps } from '@/app/components';
-import Main from '@/app/components';
-
-const App: FC<IMainProps> = () => {
+const App = () => {
   const router = useRouter();
 
-  // クエリパラメーターを保持する状態
   const [params, setParams] = useState<any>({
-    click_email: null,
-    click_type: null,
+    click_email: '',
+    click_type: '',
   });
 
   useEffect(() => {
-    // クエリパラメーターを取得して状態にセット
     const { click_email, click_type } = router.query;
 
-    setParams((prevParams: any) => ({
-      ...prevParams,
-      click_email: click_email || "default@example.com", // デフォルト値を設定
-      click_type: click_type || "default_type",
-    }));
+    // クエリパラメーターをデコードして設定
+    setParams({
+      click_email: click_email || '',
+      click_type: click_type || '',
+    });
   }, [router.query]);
 
-  return <Main params={params} />;
+  return (
+    <div>
+      <h1>クエリパラメーター取得結果</h1>
+      <p>Email: {params.click_email || 'N/A'}</p>
+      <p>Type: {params.click_type || 'N/A'}</p>
+    </div>
+  );
 };
 
-export default React.memo(App);
+export default App;
