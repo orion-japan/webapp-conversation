@@ -1,31 +1,15 @@
-"use client";
+import type { FC } from 'react'
+import React from 'react'
 
-import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import type { IMainProps } from '@/app/components'
+import Main from '@/app/components'
 
-const Page = () => {
-  const searchParams = useSearchParams();
-  const [parameters, setParameters] = useState({ click_email: "", click_type: "" });
-
-  useEffect(() => {
-    // クエリパラメーターを取得
-    const email = searchParams.get("click_email") || "";
-    const type = searchParams.get("click_type") || "";
-
-    // 状態を更新
-    setParameters({ click_email: email, click_type: type });
-
-    // 確認用ログ
-    console.log("Extracted Parameters:", { click_email: email, click_type: type });
-  }, [searchParams]);
-
+const App: FC<IMainProps> = ({
+  params,
+}: any) => {
   return (
-    <div style={{ textAlign: "center", margin: "50px" }}>
-      <h1>Welcome!</h1>
-      <p>Email: {parameters.click_email}</p>
-      <p>Click Type: {parameters.click_type}</p>
-    </div>
-  );
-};
+    <Main params={params} />
+  )
+}
 
-export default Page;
+export default React.memo(App)
