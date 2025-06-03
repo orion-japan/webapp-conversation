@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/sofia",
+            "destination": "/"
+        },
+        {
+            "source": "/sofia/(.*)",
+            "destination": "/$1"
+        }
+    ]
+}
