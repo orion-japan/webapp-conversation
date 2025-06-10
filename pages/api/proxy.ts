@@ -34,3 +34,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 }
 
+console.log('🔑 API KEY =', process.env.DIFY_API_KEY); // これ追加

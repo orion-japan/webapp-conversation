@@ -19,3 +19,7 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
+
+env: {
+  DIFY_API_KEY: process.env.DIFY_API_KEY,
+},
