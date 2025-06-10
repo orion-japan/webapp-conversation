@@ -20,8 +20,6 @@ export default function Page() {
     }
     if (uidFromUrl) {
       setUid(uidFromUrl);
-    } else {
-      alert('UIDが見つかりません');
     }
 
     const handler = (event: MessageEvent) => {
@@ -49,6 +47,9 @@ export default function Page() {
       setConversationId(data.id)
       setStarted(true)
       window.parent.postMessage({ uid, conversation_id: data.id }, '*')
+
+      // 自動送信（テスト）
+      await sendMessage('こんにちは', data.id)
     } catch (err) {
       console.error(err)
       alert('セッション開始に失敗しました')
@@ -57,9 +58,7 @@ export default function Page() {
     }
   }
 
-  const startConversation = async () => {
-    if (!userInput.trim() || !conversationId || !uid) return
-    setLoading(true)
+  const sendMessage = async (message: string, convId: string) => {
     try {
       const res = await fetch('/api/proxy?path=v1/chat-messages', {
         method: 'POST',
@@ -67,9 +66,9 @@ export default function Page() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          query: userInput,
+          query: message,
           user: uid,
-          conversation_id: conversationId,
+          conversation_id: convId,
           response_mode: 'blocking',
           inputs: {}
         })
@@ -80,9 +79,14 @@ export default function Page() {
     } catch (err) {
       console.error(err)
       setResponse('エラーが発生しました')
-    } finally {
-      setLoading(false)
     }
+  }
+
+  const startConversation = async () => {
+    if (!userInput.trim() || !conversationId || !uid) return
+    setLoading(true)
+    await sendMessage(userInput, conversationId)
+    setLoading(false)
   }
 
   return (
