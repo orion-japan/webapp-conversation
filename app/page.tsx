@@ -19,11 +19,15 @@ export default function Page() {
       }
     }
     if (uidFromUrl) {
+      console.log('UID取得成功:', uidFromUrl);
       setUid(uidFromUrl);
+    } else {
+      console.warn('UIDが取得できませんでした');
     }
 
     const handler = (event: MessageEvent) => {
       if (event.data?.uid) {
+        console.log('postMessageでUID受信:', event.data.uid);
         setUid(event.data.uid);
       }
     }
@@ -32,6 +36,7 @@ export default function Page() {
   }, []);
 
   const startSession = async () => {
+    console.log('STARTボタン押下: UID =', uid);
     if (!uid) {
       alert('UIDが見つかりません');
       return;
@@ -44,6 +49,7 @@ export default function Page() {
         body: JSON.stringify({ user: uid })
       })
       const data = await res.json()
+      console.log('conversation_id:', data.id);
       setConversationId(data.id)
       setStarted(true)
       window.parent.postMessage({ uid, conversation_id: data.id }, '*')
@@ -51,7 +57,7 @@ export default function Page() {
       // 自動送信（テスト）
       await sendMessage('こんにちは', data.id)
     } catch (err) {
-      console.error(err)
+      console.error('セッション開始失敗:', err)
       alert('セッション開始に失敗しました')
     } finally {
       setLoading(false)
@@ -59,6 +65,7 @@ export default function Page() {
   }
 
   const sendMessage = async (message: string, convId: string) => {
+    console.log('メッセージ送信:', message);
     try {
       const res = await fetch('/api/proxy?path=v1/chat-messages', {
         method: 'POST',
@@ -74,10 +81,11 @@ export default function Page() {
         })
       })
       const data = await res.json()
+      console.log('応答データ:', data);
       setResponse(data.answer || data.message || JSON.stringify(data))
       window.parent.postMessage({ content: data.answer }, '*')
     } catch (err) {
-      console.error(err)
+      console.error('送信エラー:', err)
       setResponse('エラーが発生しました')
     }
   }
@@ -92,6 +100,8 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
       <h1 className="text-2xl font-bold mb-4">Sofiaと会話する</h1>
+
+      <div className="text-sm text-gray-500 mb-2">現在のUID: {uid || '未取得'}</div>
 
       {!started ? (
         <button
