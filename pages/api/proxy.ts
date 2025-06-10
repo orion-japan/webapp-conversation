@@ -1,19 +1,16 @@
-// pages/api/proxy.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { method, body, query } = req
+    const { method, body, query } = req;
 
-    const path = typeof query.path === 'string' ? query.path : ''
-    const targetUrl = `https://api.dify.ai/${path}`
-    const apiKey = process.env.DIFY_API_KEY
+    const targetPath = Array.isArray(query.path) ? query.path.join('/') : query.path || '';
+    const targetUrl = `https://api.dify.ai/${targetPath}`;
 
-    console.log('[DEBUG] targetUrl:', targetUrl)
-    console.log('[DEBUG] DIFY_API_KEY:', apiKey)
+    const apiKey = process.env.DIFY_API_KEY;
 
     if (!apiKey) {
-        console.error('❌ DIFY_API_KEY is missing')
-        return res.status(500).json({ error: 'Missing API Key' })
+        console.error('❌ Missing DIFY_API_KEY in environment variables');
+        return res.status(500).json({ error: 'Missing API Key' });
     }
 
     try {
@@ -24,14 +21,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 'Authorization': `Bearer ${apiKey}`,
             },
             body: method !== 'GET' ? JSON.stringify(body) : undefined,
-        })
+        });
 
-        const data = await apiRes.json()
-        res.status(apiRes.status).json(data)
-    } catch (err: any) {
-        console.error('❌ Proxy fetch error:', err.message)
-        res.status(500).json({ error: 'Proxy server error', detail: err.message })
+        const data = await apiRes.json();
+        res.status(apiRes.status).json(data);
+    } catch (error) {
+        console.error('🔥 Proxy error:', error);
+        res.status(500).json({ error: 'Proxy request failed' });
     }
 }
-
-console.log('🔑 API KEY =', process.env.DIFY_API_KEY); // これ追加
