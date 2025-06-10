@@ -11,9 +11,27 @@ export default function Page() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const uidFromUrl = new URLSearchParams(window.location.search).get('uid')
-    setUid(uidFromUrl)
-  }, [])
+    let uidFromUrl = new URLSearchParams(window.location.search).get('uid');
+    if (!uidFromUrl) {
+      const match = document.cookie.match(/(?:^|;\s*)dify_user_id=([^;]*)/);
+      if (match) {
+        uidFromUrl = match[1];
+      }
+    }
+    if (uidFromUrl) {
+      setUid(uidFromUrl);
+    } else {
+      alert('UIDが見つかりません');
+    }
+
+    const handler = (event: MessageEvent) => {
+      if (event.data?.uid) {
+        setUid(event.data.uid);
+      }
+    }
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const startSession = async () => {
     if (!uid) {
