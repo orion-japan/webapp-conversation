@@ -22,3 +22,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(500).json({ error: 'Proxy failed', detail: error.message })
     }
 }
+
+const apiKey = process.env.DIFY_API_KEY
+console.log('[DEBUG] DIFY_API_KEY =', apiKey)
+
+if (!apiKey) {
+    console.error('❌ DIFY_API_KEY is missing')
+    return res.status(500).json({ error: 'Missing API Key' })
+}
+
