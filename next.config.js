@@ -23,3 +23,5 @@ module.exports = nextConfig
 env: {
   DIFY_API_KEY: process.env.DIFY_API_KEY,
 },
+
+console.log('DIFY_API_KEY:', process.env.DIFY_API_KEY)
