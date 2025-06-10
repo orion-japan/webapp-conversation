@@ -1,83 +1,60 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
-export default function Home() {
-  const [started, setStarted] = useState(false)
-  const [uid, setUid] = useState('')
-  const [conversationId, setConversationId] = useState('')
-  const [input, setInput] = useState('')
+export default function Page() {
+  const [userInput, setUserInput] = useState('')
   const [response, setResponse] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  // URLから uid を取得
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const uidFromUrl = params.get('uid')
-    if (uidFromUrl) setUid(uidFromUrl)
-  }, [])
-
-  // ✅ スタートボタンでセッション開始
   const startConversation = async () => {
-    const res = await fetch('/api/create-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid }),
-    })
-
-    const data = await res.json()
-    if (data?.id) {
-      setConversationId(data.id)
-      setStarted(true)
-    } else {
-      alert('セッション開始に失敗しました')
-      console.error(data)
+    if (!userInput.trim()) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/proxy?path=v1/chat-messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          inputs: { text: userInput },
+          user: 'uid-demo', // 必要に応じてClickから受け取ったUIDに変更
+          conversation_id: null
+        })
+      })
+      const data = await res.json()
+      setResponse(data.answer || JSON.stringify(data))
+    } catch (err) {
+      console.error('Error:', err)
+      setResponse('エラーが発生しました')
+    } finally {
+      setLoading(false)
     }
   }
 
-  // ✅ iframe からの postMessage を受信
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'dify_response') {
-        setResponse(event.data.content)
-      }
-    }
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
-
   return (
-    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      {!started ? (
-        <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-          <h2>🪐 Sofia Resonance Chat</h2>
-          <p style={{ marginBottom: '1rem' }}>はじめての方はこちらから</p>
-          <button
-            onClick={startConversation}
-            style={{
-              padding: '1rem 2rem',
-              fontSize: '1.2rem',
-              borderRadius: '8px',
-              background: '#333',
-              color: '#fff',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            🌱 スタート
-          </button>
-        </div>
-      ) : (
-        <div>
-          <iframe
-            src={`https://api.dify.ai/chat/${process.env.NEXT_PUBLIC_APP_ID}?conversation_id=${conversationId}&uid=${uid}`}
-            style={{ width: '100%', height: '600px', border: 'none', marginTop: '2rem' }}
-          />
-          <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5' }}>
-            <h4>🌀 Sofiaの返答（preview）:</h4>
-            <div>{response}</div>
-          </div>
-        </div>
-      )}
-    </main>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
+      <h1 className="text-2xl font-bold mb-4">Sofiaと会話する</h1>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          className="border p-2 rounded w-64"
+          placeholder="メッセージを入力"
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+        />
+        <button
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={startConversation}
+          disabled={loading}
+        >
+          {loading ? '送信中...' : 'スタート'}
+        </button>
+      </div>
+      <div className="mt-6 w-full max-w-xl bg-white p-4 shadow rounded">
+        <h2 className="font-semibold text-gray-700 mb-2">Sofiaの返答：</h2>
+        <p className="text-gray-800 whitespace-pre-line">{response}</p>
+      </div>
+    </div>
   )
 }
