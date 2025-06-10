@@ -83,15 +83,36 @@ export default function Home() {
   }
 
   return (
-    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+    <main
+      style={{
+        padding: '2rem',
+        fontFamily: 'sans-serif',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        flexDirection: 'column',
+      }}
+    >
       {!started ? (
-        <button onClick={startConversation} style={{ fontSize: '1.2rem' }}>
+        <button
+          onClick={startConversation}
+          style={{
+            fontSize: '1.2rem',
+            padding: '0.8rem 1.5rem',
+            borderRadius: '8px',
+            backgroundColor: '#0070f3',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
           🚀 スタート
         </button>
       ) : (
         <>
           <h1>Sofia Chat App</h1>
-          <div>
+          <div style={{ width: '100%', maxWidth: '600px' }}>
             <strong>レスポンス:</strong>
             <div style={{ margin: '1rem 0', background: '#f2f2f2', padding: '1rem', borderRadius: '8px' }}>
               {response || '(no response)'}
@@ -103,7 +124,10 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               style={{ width: '70%', padding: '0.5rem', fontSize: '1rem' }}
             />
-            <button onClick={sendMessage} style={{ marginLeft: '1rem', padding: '0.5rem 1rem' }}>
+            <button
+              onClick={sendMessage}
+              style={{ marginLeft: '1rem', padding: '0.5rem 1rem' }}
+            >
               送信
             </button>
           </div>
