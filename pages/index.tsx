@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
     const [messages, setMessages] = useState<string[]>([]);
     const [input, setInput] = useState('');
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const userId = '669933';
+    const userId = '669933'; // Clickなどと連携可
 
     const sendMessage = async () => {
         if (!input.trim()) return;
 
-        const res = await fetch('/api/proxy?path=chat-messages', {
+        const res = await fetch('/api/proxy/chat-messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -24,7 +24,6 @@ export default function Home() {
         });
 
         const data = await res.json();
-        console.log('🎯 Dify response:', data);
 
         setMessages((prev) => [
             ...prev,
@@ -40,7 +39,7 @@ export default function Home() {
     };
 
     return (
-        <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+        <div style={{ padding: '1rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '0 auto' }}>
             <h1>
                 Hello Sofia <span style={{ color: 'green' }}>✅</span>
             </h1>
@@ -52,20 +51,18 @@ export default function Home() {
                 </>
             )}
 
-            <div>
+            <div style={{ margin: '1rem 0', minHeight: '200px', background: '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
                 {messages.map((m, i) => (
-                    <p key={i}>{m}</p>
+                    <p key={i} style={{ margin: '0.25rem 0' }}>{m}</p>
                 ))}
             </div>
 
-            <div style={{ marginTop: '1rem' }}>
-                <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    style={{ width: '300px', marginRight: '0.5rem' }}
-                />
-                <button onClick={sendMessage}>送信</button>
-            </div>
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                style={{ width: '70%', padding: '0.5rem' }}
+            />
+            <button onClick={sendMessage} style={{ padding: '0.5rem' }}>送信</button>
         </div>
     );
 }
