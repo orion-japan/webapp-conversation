@@ -11,9 +11,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  env: {
-    DIFY_API_KEY: process.env.DIFY_API_KEY,
-  }
+  // ✅ 👇 これを削除
+  // env: {
+  //   DIFY_API_KEY: process.env.DIFY_API_KEY,
+  // },
 };
 
 module.exports = nextConfig;
