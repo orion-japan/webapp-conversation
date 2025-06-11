@@ -2,8 +2,8 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+const DIFY_API_URL = 'https://api.dify.ai/v1/chat-messages';
 const apiKey = process.env.DIFY_API_KEY;
-const targetUrl = 'https://api.dify.ai/v1/chat-messages';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -12,28 +12,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const { query, inputs = {}, user = '', conversation_id = '' } = req.body;
+        const { inputs = {}, query, response_mode = 'blocking', conversation_id = '', user = '' } = req.body;
 
-        const apiRes = await fetch(targetUrl, {
+        const response = await fetch(DIFY_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
-                query,
                 inputs,
-                user,
-                response_mode: 'blocking',
+                query,
+                response_mode,
                 conversation_id,
+                user,
             }),
         });
 
-        const data = await apiRes.json();
+        const data = await response.json();
 
-        res.status(apiRes.status).json(data);
+        res.status(response.status).json(data);
     } catch (error: any) {
         console.error('🔴 Proxy Error:', error);
         res.status(500).json({ error: 'Proxy request failed' });
     }
 }
+console.log('🔵 Proxying to Dify with:', {
+    query,
+    inputs,
+    user,
+    conversation_id,
+    apiKeyPresent: !!apiKey,
+});
