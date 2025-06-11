@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 export default function Home() {
+    const router = useRouter();
     const [messages, setMessages] = useState<string[]>([]);
     const [input, setInput] = useState('');
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const userId = '669933'; // Clickなどと連携可
+    const [userId, setUserId] = useState<string>('');
+
+    // URLからuser IDを取得
+    useEffect(() => {
+        if (router.isReady) {
+            const uid = (router.query.uid as string) || 'default-user';
+            setUserId(uid);
+        }
+    }, [router.isReady, router.query]);
 
     const sendMessage = async () => {
         if (!input.trim()) return;
@@ -24,6 +34,7 @@ export default function Home() {
         });
 
         const data = await res.json();
+        console.log('🎯 Dify response:', data);
 
         setMessages((prev) => [
             ...prev,
@@ -39,30 +50,32 @@ export default function Home() {
     };
 
     return (
-        <div style={{ padding: '1rem', fontFamily: 'sans-serif', maxWidth: '400px', margin: '0 auto' }}>
+        <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
             <h1>
                 Hello Sofia <span style={{ color: 'green' }}>✅</span>
             </h1>
 
             {conversationId && (
-                <>
-                    <p>🧠 会話ID: <strong>{conversationId}</strong></p>
-                    <p>👤 ユーザーID: <strong>{userId}</strong></p>
-                </>
+                <p>🧠 会話ID: <strong>{conversationId}</strong></p>
+            )}
+            {userId && (
+                <p>👤 ユーザーID: <strong>{userId}</strong></p>
             )}
 
-            <div style={{ margin: '1rem 0', minHeight: '200px', background: '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
+            <div>
                 {messages.map((m, i) => (
-                    <p key={i} style={{ margin: '0.25rem 0' }}>{m}</p>
+                    <p key={i}>{m}</p>
                 ))}
             </div>
 
-            <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                style={{ width: '70%', padding: '0.5rem' }}
-            />
-            <button onClick={sendMessage} style={{ padding: '0.5rem' }}>送信</button>
+            <div style={{ marginTop: '1rem' }}>
+                <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    style={{ width: '300px', marginRight: '0.5rem' }}
+                />
+                <button onClick={sendMessage}>送信</button>
+            </div>
         </div>
     );
 }
