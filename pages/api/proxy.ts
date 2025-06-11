@@ -52,3 +52,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
     }
 }
+console.log('✅ 環境変数 DIFY_API_KEY:', process.env.DIFY_API_KEY);
