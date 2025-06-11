@@ -1,18 +1,20 @@
 // pages/api/proxy.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const DIFY_API_URL = 'https://api.dify.ai/v1/chat-messages';
+const DIFY_API_URL = 'https://api.dify.ai/v1/chat-messages'; // ← 必ずここに固定
 const apiKey = process.env.DIFY_API_KEY;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
-        res.setHeader('Allow', ['POST']);
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
+        return res.status(405).end('Method Not Allowed');
+    }
+
+    if (!apiKey) {
+        return res.status(500).json({ error: 'Missing API key' });
     }
 
     try {
-        const { inputs = {}, query, response_mode = 'blocking', conversation_id = '', user = '' } = req.body;
+        const { inputs = {}, query = '', response_mode = 'blocking', conversation_id = '', user = '' } = req.body;
 
         const response = await fetch(DIFY_API_URL, {
             method: 'POST',
@@ -33,14 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         res.status(response.status).json(data);
     } catch (error: any) {
-        console.error('🔴 Proxy Error:', error);
-        res.status(500).json({ error: 'Proxy request failed' });
+        console.error('🔴 Proxy error:', error);
+        res.status(500).json({ error: 'Proxy request failed', detail: error?.message });
     }
 }
-console.log('🔵 Proxying to Dify with:', {
-    query,
-    inputs,
-    user,
-    conversation_id,
-    apiKeyPresent: !!apiKey,
-});
