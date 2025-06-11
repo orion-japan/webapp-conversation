@@ -1,36 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
     const [messages, setMessages] = useState<string[]>([]);
     const [input, setInput] = useState('');
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const [userId, setUserId] = useState<string>(''); // ← userIdを取得用に
+    const [userId, setUserId] = useState<string>('');
 
-    // 🌟 ClickからURLパラメータ取得
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const user = urlParams.get('user');
-        const query = urlParams.get('query');
-
-        if (user) {
-            setUserId(user);
-        }
-        if (query) {
-            sendMessage(query, user ?? '');
-        }
-    }, []);
-
-    const sendMessage = async (message: string, userOverride?: string) => {
-        const user = userOverride ?? userId;
+    // 🌱 Difyへ送信する関数（queryとuserを引数にする）
+    const sendMessage = async (message: string, user: string) => {
         if (!message.trim()) return;
 
-        const res = await fetch('/api/proxy?path=chat-messages', {
+        const res = await fetch('/api/proxy/chat-messages', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                inputs: {},
+                inputs: { text: message },
                 query: message,
                 response_mode: 'blocking',
                 conversation_id: conversationId,
@@ -39,12 +23,12 @@ export default function Home() {
         });
 
         const data = await res.json();
-        console.log('🟢 Dify response:', data);
+        console.log('🎯 Dify response:', data);
 
         setMessages((prev) => [
             ...prev,
             `👤 ${message}`,
-            `🤖 ${data.answer ?? '(応答なし)'}`,
+            `🤖 ${data.answer || '(応答なし)'}`,
         ]);
 
         if (data.conversation_id) {
@@ -54,36 +38,53 @@ export default function Home() {
         setInput('');
     };
 
+    // 🌱 Clickから渡されたURLパラメータ（user, query）を読み取る
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const user = urlParams.get('user');
+        const query = urlParams.get('query');
+
+        if (user) {
+            setUserId(user); // ユーザーを記録
+
+            if (query) {
+                sendMessage(query, user); // 最初の発話を送信
+            }
+        }
+    }, []);
+
     return (
         <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
             <h1>
                 Hello Sofia <span style={{ color: 'green' }}>✅</span>
             </h1>
 
-            {conversationId && <p>🧠 会話ID: <strong>{conversationId}</strong></p>}
-            {userId && <p>👤 ユーザーID: <strong>{userId}</strong></p>}
+            {conversationId && (
+                <p>🧠 会話ID: <strong>{conversationId}</strong></p>
+            )}
+            {userId && (
+                <p>👤 ユーザーID: <strong>{userId}</strong></p>
+            )}
 
-            <div
-                style={{
-                    marginTop: '1rem',
-                    padding: '1rem',
-                    border: '1px solid #ccc',
-                    minHeight: '150px',
-                }}
-            >
+            <div style={{
+                minHeight: '150px',
+                padding: '1rem',
+                marginBottom: '1rem',
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                background: '#f9f9f9'
+            }}>
                 {messages.map((m, i) => (
                     <p key={i}>{m}</p>
                 ))}
             </div>
 
-            <div style={{ marginTop: '1rem' }}>
-                <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    style={{ width: '300px', marginRight: '0.5rem' }}
-                />
-                <button onClick={() => sendMessage(input)}>送信</button>
-            </div>
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                style={{ width: '300px', marginRight: '0.5rem' }}
+            />
+            <button onClick={() => sendMessage(input, userId)}>送信</button>
         </div>
     );
 }
