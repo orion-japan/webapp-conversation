@@ -1,8 +1,8 @@
+// /pages/api/proxy.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { method, body, query } = req;
-
     const targetPath = Array.isArray(query.path) ? query.path.join('/') : query.path || '';
     const targetUrl = `https://api.dify.ai/${targetPath}`;
 
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             method,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': apiKey, // すでに "Bearer ..." を .env に含めていれば OK
             },
             body: method !== 'GET' ? JSON.stringify(body) : undefined,
         });
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const data = await apiRes.json();
         res.status(apiRes.status).json(data);
     } catch (error) {
-        console.error('🔥 Proxy error:', error);
+        console.error('🛑 Proxy request failed:', error);
         res.status(500).json({ error: 'Proxy request failed' });
     }
 }
