@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function Home() {
     const [messages, setMessages] = useState<string[]>([]);
     const [input, setInput] = useState('');
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const userId = '669933'; // 任意のユーザーID（ClickやUUIDでもOK）
+    const userId = '669933';
 
     const sendMessage = async () => {
         if (!input.trim()) return;
@@ -18,7 +18,7 @@ export default function Home() {
                 inputs: { text: input },
                 query: input,
                 response_mode: 'blocking',
-                conversation_id: conversationId, // nullなら新規会話として扱われる
+                conversation_id: conversationId,
                 user: userId,
             }),
         });
@@ -32,7 +32,6 @@ export default function Home() {
             `🤖 ${data.answer || '(応答なし)'}`,
         ]);
 
-        // conversation_id を取得・保存
         if (data.conversation_id) {
             setConversationId(data.conversation_id);
         }
@@ -47,8 +46,10 @@ export default function Home() {
             </h1>
 
             {conversationId && (
-                <p>🧠 会話ID: <strong>{conversationId}</strong></p>
-                <p>👤 ユーザーID: <strong>{userId}</strong></p>
+                <>
+                    <p>🧠 会話ID: <strong>{conversationId}</strong></p>
+                    <p>👤 ユーザーID: <strong>{userId}</strong></p>
+                </>
             )}
 
             <div>
