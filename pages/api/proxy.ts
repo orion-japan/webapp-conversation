@@ -1,5 +1,4 @@
 // pages/api/proxy.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -7,41 +6,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // ✅ ログで環境変数の有無を確認
-    console.log('🔍 DIFY_API_KEY:', process.env.DIFY_API_KEY);
-
     const rawKey = process.env.DIFY_API_KEY;
-
     if (!rawKey) {
         return res.status(400).json({
             name: 'BadRequest',
-            message: 'Error',
+            message: 'Missing API key in env',
             code: 400,
             className: 'bad-request',
-            data: {
-                error: 'Missing API key in env'
-            },
+            data: { error: 'Missing API key in env' },
             errors: {}
         });
     }
 
-    const apiKey = rawKey.startsWith('Bearer ') ? rawKey : `Bearer ${rawKey}`;
-
-    const { path } = req.query;
-    if (!path || typeof path !== 'string') {
-        return res.status(400).json({ error: 'Missing or invalid API path' });
+    const { path, payload } = req.body;
+    if (!path || !payload) {
+        return res.status(400).json({ error: 'Missing path or payload' });
     }
 
-    const targetUrl = `https://api.dify.ai/v1/${path}`;
-
     try {
+        const targetUrl = `https://api.dify.ai/v1/${path}`;
+
         const apiRes = await fetch(targetUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': apiKey,
+                Authorization: rawKey,
             },
-            body: JSON.stringify(req.body),
+            body: JSON.stringify(payload),
         });
 
         const data = await apiRes.json();
