@@ -48,6 +48,7 @@ export default function Home() {
 
             {conversationId && (
                 <p>🧠 会話ID: <strong>{conversationId}</strong></p>
+                <p>👤 ユーザーID: <strong>{userId}</strong></p>
             )}
 
             <div>
