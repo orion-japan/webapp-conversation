@@ -1,54 +1,54 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+// /pages/api/proxy.ts
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { method, body, query } = req
-    const path = query.path as string
-    const targetUrl = `https://api.dify.ai/${path}`
-    const apiKey = process.env.DIFY_API_KEY
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-    if (!apiKey) {
-        console.error('❌ DIFY_API_KEY が未設定です')
-        return res.status(500).json({ error: 'DIFY_API_KEY is not set' })
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
     }
+
+    const apiKey = process.env.DIFY_API_KEY;
+    if (!apiKey) {
+        res.status(500).json({ error: 'DIFY_API_KEY is not set' });
+        return;
+    }
+
+    const targetUrl = 'https://api.dify.ai/v1/chat-messages';
 
     try {
-        const payload = {
-            inputs: body.inputs || {},
-            query: body.query || '',
-            response_mode: body.response_mode || 'blocking',
-            conversation_id: body.conversation_id || undefined,
-            user: body.user || undefined
-        }
+        const { query, inputs, conversation_id, user } = req.body;
 
-        const apiRes = await fetch(targetUrl, {
+        const difyResponse = await fetch(targetUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': apiKey
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
-        })
+            body: JSON.stringify({
+                query,
+                inputs,
+                user,
+                response_mode: 'blocking',
+                ...(conversation_id ? { conversation_id } : {}) // 省略可
+            })
+        });
 
-        const data = await apiRes.json()
+        const data = await difyResponse.json();
 
-        if (!apiRes.ok) {
-            console.error('🔴 Dify API error:', data)
-            return res.status(apiRes.status).json(data)
-        }
-
-        return res.status(apiRes.status).json(data)
+        // Click向けに最低限の情報だけ返す場合：
+        res.status(200).json({
+            answer: data.answer,
+            conversation_id: data.conversation_id,
+            task_id: data.task_id,
+            message_id: data.message_id,
+            usage: data.metadata?.usage || {}
+        });
 
     } catch (error: any) {
-        console.error('🔴 Proxy error:', {
-            url: targetUrl,
-            method,
-            body,
-            error: error.message,
-        })
-
-        return res.status(500).json({
-            error: 'Internal proxy error',
-            detail: error.message
-        })
+        console.error('🔴 Proxy error:', error);
+        res.status(500).json({ error: 'Proxy request failed' });
     }
-}
+};
+
+export default handler;
