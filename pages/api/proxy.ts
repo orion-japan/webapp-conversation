@@ -1,3 +1,5 @@
+// pages/api/proxy.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -5,30 +7,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const apiKey = process.env.DIFY_API_KEY;
+    const { query, inputs, response_mode, conversation_id, user } = req.body;
 
-    // 🔍 ログで確認
-    console.log('🔍 DIFY_API_KEY from env:', apiKey);
+    const DIFY_API_KEY = process.env.DIFY_API_KEY;
+    const apiUrl = 'https://api.dify.ai/v1/chat-messages';
 
-    if (!apiKey) {
-        return res.status(400).json({ error: 'Missing API key in env' });
+    if (!DIFY_API_KEY) {
+        console.error('❌ Missing DIFY_API_KEY in environment variables');
+        return res.status(500).json({ error: 'Missing API key' });
     }
 
     try {
-        const apiRes = await fetch('https://api.dify.ai/v1/chat-messages', {
+        const apiResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: {
+                'Authorization': DIFY_API_KEY,
                 'Content-Type': 'application/json',
-                'Authorization': apiKey,
             },
-            body: JSON.stringify(req.body),
+            body: JSON.stringify({
+                inputs: inputs || {},
+                query,
+                response_mode: response_mode || 'blocking',
+                conversation_id,
+                user,
+            }),
         });
 
-        const data = await apiRes.json();
-        console.log('✅ Dify response:', data);
-        res.status(apiRes.status).json(data);
-    } catch (err: any) {
-        console.error('❌ Proxy error:', err);
-        res.status(500).json({ error: 'Proxy request failed', detail: err.message });
+        const data = await apiResponse.json();
+
+        if (!apiResponse.ok) {
+            console.error('🔴 API Error:', data);
+            return res.status(apiResponse.status).json({ error: data });
+        }
+
+        // 通常レスポンス
+        return res.status(200).json(data);
+    } catch (error: any) {
+        console.error('❌ Proxy error:', error);
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            detail: error.message,
+        });
     }
 }
