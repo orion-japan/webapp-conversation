@@ -1,70 +1,78 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react';
 
 export default function Home() {
-    const [messages, setMessages] = useState<string[]>([])
-    const [input, setInput] = useState('')
-    const [conversationId, setConversationId] = useState<string | null>(null)
-    const [loaded, setLoaded] = useState(false)
+    const [messages, setMessages] = useState<string[]>([]);
+    const [input, setInput] = useState('');
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string>(''); // ← userIdを取得用に
 
-    const userId = '669933'
-
-    // ✅ 外部のqueryを受け取る処理（ClickのURLに ?query=〇〇 を含めて呼ぶ）
+    // 🌟 ClickからURLパラメータ取得
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search)
-        const extQuery = params.get('query')
-        if (extQuery && !loaded) {
-            setInput(extQuery)
-            sendMessage(extQuery)
-            setLoaded(true) // 一度だけ実行
+        const urlParams = new URLSearchParams(window.location.search);
+        const user = urlParams.get('user');
+        const query = urlParams.get('query');
+
+        if (user) {
+            setUserId(user);
         }
-    }, [loaded])
+        if (query) {
+            sendMessage(query, user ?? '');
+        }
+    }, []);
 
-    const sendMessage = async (text?: string) => {
-        const queryText = text ?? input
-        if (!queryText.trim()) return
+    const sendMessage = async (message: string, userOverride?: string) => {
+        const user = userOverride ?? userId;
+        if (!message.trim()) return;
 
-        const res = await fetch('/api/proxy/chat-messages', {
+        const res = await fetch('/api/proxy?path=chat-messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                inputs: { text: queryText },
-                query: queryText,
+                inputs: {},
+                query: message,
                 response_mode: 'blocking',
                 conversation_id: conversationId,
-                user: userId,
+                user: user,
             }),
-        })
+        });
 
-        const data = await res.json()
+        const data = await res.json();
+        console.log('🟢 Dify response:', data);
 
         setMessages((prev) => [
             ...prev,
-            `👤 ${queryText}`,
-            `🤖 ${data.answer || '(応答なし)'}`,
-        ])
+            `👤 ${message}`,
+            `🤖 ${data.answer ?? '(応答なし)'}`,
+        ]);
 
         if (data.conversation_id) {
-            setConversationId(data.conversation_id)
+            setConversationId(data.conversation_id);
         }
 
-        setInput('')
-    }
+        setInput('');
+    };
 
     return (
-        <div style={{ padding: '1rem', fontFamily: 'sans-serif' }}>
-            <h1>Hello Sofia ✅</h1>
-            {conversationId && (
-                <>
-                    <p>🧠 会話ID: <strong>{conversationId}</strong></p>
-                    <p>👤 ユーザーID: <strong>{userId}</strong></p>
-                </>
-            )}
+        <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+            <h1>
+                Hello Sofia <span style={{ color: 'green' }}>✅</span>
+            </h1>
 
-            <div style={{ backgroundColor: '#f3f3f3', padding: '1rem', borderRadius: '8px', minHeight: '120px' }}>
-                {messages.map((msg, idx) => (
-                    <p key={idx}>{msg}</p>
+            {conversationId && <p>🧠 会話ID: <strong>{conversationId}</strong></p>}
+            {userId && <p>👤 ユーザーID: <strong>{userId}</strong></p>}
+
+            <div
+                style={{
+                    marginTop: '1rem',
+                    padding: '1rem',
+                    border: '1px solid #ccc',
+                    minHeight: '150px',
+                }}
+            >
+                {messages.map((m, i) => (
+                    <p key={i}>{m}</p>
                 ))}
             </div>
 
@@ -72,10 +80,10 @@ export default function Home() {
                 <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    style={{ width: '70%' }}
+                    style={{ width: '300px', marginRight: '0.5rem' }}
                 />
-                <button onClick={() => sendMessage()}>送信</button>
+                <button onClick={() => sendMessage(input)}>送信</button>
             </div>
         </div>
-    )
+    );
 }
