@@ -4,21 +4,24 @@ export default function Home() {
     const [messages, setMessages] = useState<string[]>([])
     const [input, setInput] = useState('')
     const [conversationId, setConversationId] = useState<string | null>(null)
+    const [loaded, setLoaded] = useState(false)
 
-    // Clickから外部変数を受け取る方法（例：URLやグローバル変数から）
     const userId = '669933'
-    const externalQuery = (window as any).query || '' // ← Clickから受け取った入力
 
+    // ✅ 外部のqueryを受け取る処理（ClickのURLに ?query=〇〇 を含めて呼ぶ）
     useEffect(() => {
-        if (externalQuery) {
-            setInput(externalQuery)
-            sendMessage(externalQuery)
+        const params = new URLSearchParams(window.location.search)
+        const extQuery = params.get('query')
+        if (extQuery && !loaded) {
+            setInput(extQuery)
+            sendMessage(extQuery)
+            setLoaded(true) // 一度だけ実行
         }
-    }, [externalQuery])
+    }, [loaded])
 
-    const sendMessage = async (queryText?: string) => {
-        const text = queryText ?? input
-        if (!text.trim()) return
+    const sendMessage = async (text?: string) => {
+        const queryText = text ?? input
+        if (!queryText.trim()) return
 
         const res = await fetch('/api/proxy/chat-messages', {
             method: 'POST',
@@ -26,8 +29,8 @@ export default function Home() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                inputs: { text },
-                query: text,
+                inputs: { text: queryText },
+                query: queryText,
                 response_mode: 'blocking',
                 conversation_id: conversationId,
                 user: userId,
@@ -35,11 +38,10 @@ export default function Home() {
         })
 
         const data = await res.json()
-        console.log('🎯 response', data)
 
         setMessages((prev) => [
             ...prev,
-            `👤 ${text}`,
+            `👤 ${queryText}`,
             `🤖 ${data.answer || '(応答なし)'}`,
         ])
 
@@ -51,9 +53,8 @@ export default function Home() {
     }
 
     return (
-        <div style={{ padding: '1rem' }}>
+        <div style={{ padding: '1rem', fontFamily: 'sans-serif' }}>
             <h1>Hello Sofia ✅</h1>
-
             {conversationId && (
                 <>
                     <p>🧠 会話ID: <strong>{conversationId}</strong></p>
@@ -61,16 +62,20 @@ export default function Home() {
                 </>
             )}
 
-            {messages.map((m, i) => (
-                <p key={i}>{m}</p>
-            ))}
+            <div style={{ backgroundColor: '#f3f3f3', padding: '1rem', borderRadius: '8px', minHeight: '120px' }}>
+                {messages.map((msg, idx) => (
+                    <p key={idx}>{msg}</p>
+                ))}
+            </div>
 
-            <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                style={{ width: '80%' }}
-            />
-            <button onClick={() => sendMessage()}>送信</button>
+            <div style={{ marginTop: '1rem' }}>
+                <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    style={{ width: '70%' }}
+                />
+                <button onClick={() => sendMessage()}>送信</button>
+            </div>
         </div>
     )
 }
