@@ -20,7 +20,12 @@ export default function ChatPage() {
 
     const handleSend = () => {
         if (message.trim() === "") return;
-        setMessages([...messages, message]);
+        const newMessages = [
+            ...messages,
+            `わたし: ${message}`,
+            `Sofia: 「${message}」について考えてみますね。`
+        ];
+        setMessages(newMessages);
         setMessage("");
     };
 
@@ -41,8 +46,8 @@ export default function ChatPage() {
                 ))}
             </div>
 
-            {/* チャットエリア（中央寄せ） */}
-            <div className="md:w-3/4 w-full p-6 flex justify-center">
+            {/* チャットエリア（中央寄せ＋送信機能＋仮返信） */}
+            <div className="md:w-3/4 w-full p-6 flex justify-center items-start">
                 <div className="w-full max-w-xl">
                     <h1 className="text-2xl font-bold mb-4">Hello Sofia ✅</h1>
 
@@ -52,7 +57,7 @@ export default function ChatPage() {
                         ) : (
                             <ul className="space-y-2">
                                 {messages.map((msg, index) => (
-                                    <li key={index} className="bg-gray-100 p-2 rounded text-sm">
+                                    <li key={index} className="bg-gray-100 p-2 rounded text-sm whitespace-pre-wrap">
                                         {msg}
                                     </li>
                                 ))}
