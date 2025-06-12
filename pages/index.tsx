@@ -14,12 +14,35 @@ export default function Home() {
     useEffect(() => {
         if (typeof queryUser === "string") {
             setUser(queryUser);
+            fetchConversationList(queryUser);
         }
 
         if (typeof queryText === "string" && queryText) {
             handleSend(queryText);
         }
     }, [queryUser, queryText]);
+
+    const fetchConversationList = async (userId: string) => {
+        const res = await fetch(`/api/proxy/conversations?user=${userId}`);
+        const data = await res.json();
+        if (data?.data) {
+            setHistory(data.data.map((c: any) => ({ id: c.id, name: c.name || "無題の会話" })));
+        }
+    };
+
+    const fetchMessages = async (convId: string) => {
+        const res = await fetch(`/api/proxy/messages?user=${user}&conversation_id=${convId}`);
+        const data = await res.json();
+        if (data?.data) {
+            const reversed = [...data.data].reverse();
+            setMessages(
+                reversed.flatMap((m: any) => [
+                    `🧑 ${m.query || ""}`,
+                    `😺 ${m.answer || "[応答なし]"}`,
+                ])
+            );
+        }
+    };
 
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
@@ -48,12 +71,7 @@ export default function Home() {
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-
-            // 会話履歴を更新
-            setHistory((prev) => [
-                ...prev,
-                { id: data.conversation_id, name: text.slice(0, 10) },
-            ]);
+            fetchConversationList(user);
         }
 
         setInput("");
@@ -65,7 +83,7 @@ export default function Home() {
             setMessages([]);
         } else {
             setConversationId(id);
-            setMessages([]); // DifyのAPIから履歴を取得したい場合はここに追加処理も可
+            fetchMessages(id);
         }
     };
 
