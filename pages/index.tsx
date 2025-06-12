@@ -14,6 +14,7 @@ export default function Home() {
     useEffect(() => {
         if (typeof queryUser === "string") {
             setUser(queryUser);
+            fetchConversationList(queryUser);
         }
 
         if (typeof queryText === "string" && queryText) {
@@ -21,19 +22,27 @@ export default function Home() {
         }
     }, [queryUser, queryText]);
 
-    useEffect(() => {
-        if (conversationId) {
-            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    const newMessages = data.data
-                        .slice()
-                        .reverse()
-                        .flatMap((msg: any) => [`🧑 ${msg.query}`, `😺 ${msg.answer || "[応答なし]"}`]);
-                    setMessages(newMessages);
-                });
+    const fetchConversationList = async (userId: string) => {
+        const res = await fetch(`/api/proxy/conversations?user=${userId}`);
+        const data = await res.json();
+        if (data?.data) {
+            setHistory(data.data.map((c: any) => ({ id: c.id, name: c.name || "無題の会話" })));
         }
-    }, [conversationId]);
+    };
+
+    const fetchMessages = async (convId: string) => {
+        const res = await fetch(`/api/proxy/messages?user=${user}&conversation_id=${convId}`);
+        const data = await res.json();
+        if (data?.data) {
+            const reversed = [...data.data].reverse();
+            setMessages(
+                reversed.flatMap((m: any) => [
+                    `🧑 ${m.query || ""}`,
+                    `😺 ${m.answer || "[応答なし]"}`,
+                ])
+            );
+        }
+    };
 
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
@@ -62,11 +71,7 @@ export default function Home() {
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-
-            setHistory((prev) => {
-                if (prev.find((h) => h.id === data.conversation_id)) return prev;
-                return [...prev, { id: data.conversation_id, name: text.slice(0, 10) }];
-            });
+            fetchConversationList(user);
         }
 
         setInput("");
@@ -78,13 +83,15 @@ export default function Home() {
             setMessages([]);
         } else {
             setConversationId(id);
-            setMessages([]);
+            fetchMessages(id);
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>Hello Sofia ✅</h1>
+            <h1>
+                Hello Sofia ✅
+            </h1>
 
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
