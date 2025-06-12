@@ -1,12 +1,4 @@
+// 消すかコメントアウト
 {
-    "rewrites": [
-        {
-            "source": "/sofia",
-            "destination": "/"
-        },
-        {
-            "source": "/sofia/(.*)",
-            "destination": "/$1"
-        }
-    ]
+    "rewrites": []
 }
