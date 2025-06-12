@@ -1,6 +1,6 @@
 // pages/chat/[conversation_id].tsx
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const mockConversations = [
     { id: 'abc123', title: '朝の瞑想', created_at: '2025-06-12T08:00' },
@@ -11,6 +11,10 @@ export default function ChatPage() {
     const router = useRouter();
     const { conversation_id } = router.query;
     const [currentId, setCurrentId] = useState(conversation_id);
+
+    useEffect(() => {
+        if (conversation_id) setCurrentId(conversation_id);
+    }, [conversation_id]);
 
     return (
         <div className="flex flex-col md:flex-row min-h-screen">
@@ -29,27 +33,25 @@ export default function ChatPage() {
                 ))}
             </div>
 
-            {/* チャットエリア */}
-            <div className="md:w-3/4 w-full p-6">
-                <h1 className="text-2xl font-bold mb-4">Hello Sofia ✅</h1>
-                <div className="border rounded p-4 mb-4 bg-white min-h-[200px]">
-                    {/* ダミーメッセージ領域 */}
-                    <p>ここに選択中の会話（{currentId}）のメッセージが表示されます。</p>
-                </div>
-                <div className="flex">
-                    <input
-                        type="text"
-                        placeholder="メッセージを入力..."
-                        className="flex-grow px-4 py-2 border rounded-l"
-                    />
-                    <button className="bg-blue-500 text-white px-4 py-2 rounded-r">送信</button>
+            {/* チャットエリア（中央寄せ） */}
+            <div className="md:w-3/4 w-full p-6 flex flex-col items-center">
+                <div className="w-full max-w-xl">
+                    <h1 className="text-2xl font-bold mb-4">Hello Sofia ✅</h1>
+
+                    <div className="border rounded p-4 mb-4 bg-white min-h-[200px]">
+                        <p>ここに選択中の会話（{currentId}）のメッセージが表示されます。</p>
+                    </div>
+
+                    <div className="flex">
+                        <input
+                            type="text"
+                            placeholder="メッセージを入力..."
+                            className="flex-grow px-4 py-2 border rounded-l"
+                        />
+                        <button className="bg-blue-500 text-white px-4 py-2 rounded-r">送信</button>
+                    </div>
                 </div>
             </div>
         </div>
     );
-}
-export async function getServerSideProps(context: any) {
-    return {
-        props: {},
-    };
 }
