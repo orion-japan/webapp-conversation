@@ -11,33 +11,43 @@ export default function Home() {
     const [user, setUser] = useState<string>("unknown");
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
-    // 初回 user/query 取得
+    // ✅ user セット（queryUser 確定後にのみ）
     useEffect(() => {
-        if (typeof queryUser === "string") setUser(queryUser);
-        if (typeof queryText === "string" && queryText) {
+        if (typeof queryUser === "string") {
+            setUser(queryUser);
+        }
+    }, [queryUser]);
+
+    // ✅ queryText がある場合にだけ送信（user設定後）
+    useEffect(() => {
+        if (user !== "unknown" && typeof queryText === "string" && queryText) {
             handleSend(queryText);
         }
-    }, [queryUser, queryText]);
+    }, [user, queryText]);
 
-    // 会話履歴の取得
+    // ✅ 会話履歴の取得（user確定後）
     useEffect(() => {
         if (user && user !== "unknown") {
             fetch(`/api/proxy/conversations?user=${user}`)
                 .then((res) => res.json())
                 .then((data) => {
-                    if (data?.data) {
-                        setHistory(
-                            data.data.map((conv: any) => ({
-                                id: conv.id,
-                                name: conv.name || conv.id.slice(0, 10),
-                            }))
-                        );
+                    if (data?.data?.length > 0) {
+                        const formatted = data.data.map((conv: any) => ({
+                            id: conv.id,
+                            name: conv.name || conv.id.slice(0, 10),
+                        }));
+                        setHistory(formatted);
+
+                        // ✅ 最初の履歴を選択（新規開始でない場合）
+                        if (!conversationId) {
+                            setConversationId(formatted[0].id);
+                        }
                     }
                 });
         }
     }, [user]);
 
-    // 会話ID変更時：履歴読み込み（1秒待機してから）
+    // ✅ 履歴の復元（Dify側反映遅延に備えて1秒後取得）
     useEffect(() => {
         if (conversationId) {
             setMessages(["📥 履歴を読み込み中..."]);
@@ -68,7 +78,7 @@ export default function Home() {
                             `🚫 履歴の取得中にエラーが発生しました：${err.message}`,
                         ]);
                     });
-            }, 1000); // ← ディレイ挿入
+            }, 1000);
 
             return () => clearTimeout(timeout);
         } else {
@@ -76,15 +86,15 @@ export default function Home() {
         }
     }, [conversationId]);
 
-    // メッセージ送信
+    // ✅ メッセージ送信（即入力クリア・conversation_id更新・履歴追記）
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
 
+        setInput(""); // ✅ 入力即クリア
+
         const res = await fetch("/api/proxy/chat-messages", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 inputs: {},
                 query: text,
@@ -109,8 +119,6 @@ export default function Home() {
                 ...prev,
             ]);
         }
-
-        setInput("");
     };
 
     const handleSelectConversation = (id: string) => {
@@ -125,7 +133,6 @@ export default function Home() {
     return (
         <div style={{ padding: 20 }}>
             <h1>Hello Sofia ✅</h1>
-
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
 
