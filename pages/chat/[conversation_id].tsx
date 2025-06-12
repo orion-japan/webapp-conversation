@@ -7,26 +7,55 @@ const mockConversations = [
     { id: 'def456', title: '夜の対話', created_at: '2025-06-11T22:15' },
 ];
 
+const API_URL = 'https://api.dify.ai/v1/chat-messages';
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
+
 export default function ChatPage() {
     const router = useRouter();
     const { conversation_id } = router.query;
     const [currentId, setCurrentId] = useState(conversation_id);
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (conversation_id) setCurrentId(conversation_id);
     }, [conversation_id]);
 
-    const handleSend = () => {
-        if (message.trim() === "") return;
-        const newMessages = [
-            ...messages,
-            `わたし: ${message}`,
-            `Sofia: 「${message}」について考えてみますね。`
-        ];
-        setMessages(newMessages);
-        setMessage("");
+    const handleSend = async () => {
+        if (!message.trim()) return;
+        setMessages((prev) => [...prev, `わたし: ${message}`]);
+        setLoading(true);
+
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inputs: {},
+                    query: message,
+                    response_mode: 'blocking',
+                    conversation_id: currentId,
+                    user: 'sofia-user'
+                })
+            });
+
+            const data = await res.json();
+            if (data.answer) {
+                setMessages((prev) => [...prev, `Sofia: ${data.answer}`]);
+            } else {
+                setMessages((prev) => [...prev, 'Sofia: 応答が取得できませんでした。']);
+            }
+        } catch (err) {
+            console.error('送信エラー:', err);
+            setMessages((prev) => [...prev, 'Sofia: エラーが発生しました。']);
+        } finally {
+            setLoading(false);
+            setMessage("");
+        }
     };
 
     return (
@@ -46,7 +75,7 @@ export default function ChatPage() {
                 ))}
             </div>
 
-            {/* チャットエリア（中央寄せ＋送信機能＋仮返信） */}
+            {/* チャットエリア */}
             <div className="md:w-3/4 w-full p-6 flex justify-center items-start">
                 <div className="w-full max-w-xl">
                     <h1 className="text-2xl font-bold mb-4">Hello Sofia ✅</h1>
@@ -63,6 +92,7 @@ export default function ChatPage() {
                                 ))}
                             </ul>
                         )}
+                        {loading && <p className="text-sm text-gray-500 mt-2">Sofiaが考え中です…</p>}
                     </div>
 
                     <div className="flex">
@@ -72,10 +102,12 @@ export default function ChatPage() {
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             className="flex-grow px-4 py-2 border rounded-l"
+                            disabled={loading}
                         />
                         <button
                             onClick={handleSend}
                             className="bg-blue-500 text-white px-4 py-2 rounded-r"
+                            disabled={loading}
                         >
                             送信
                         </button>
