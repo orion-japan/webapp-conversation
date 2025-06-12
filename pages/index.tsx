@@ -4,81 +4,87 @@ import { useRouter } from 'next/router';
 
 export default function Home() {
     const router = useRouter();
-    const { user, query } = router.query;
+    const { query } = router;
+    const initialQuery = typeof query.query === 'string' ? query.query : '';
+    const initialUser = typeof query.user === 'string' ? query.user : 'unknown';
 
-    const [input, setInput] = useState('');
-    const [conversationId, setConversationId] = useState<string | null>(null);
     const [messages, setMessages] = useState<string[]>([]);
-    const [currentUser, setCurrentUser] = useState('');
+    const [input, setInput] = useState(initialQuery);
+    const [conversationId, setConversationId] = useState<string>('');
+    const [userId] = useState(initialUser);
+    const [history, setHistory] = useState<{ id: string; title: string }[]>([]);
 
     useEffect(() => {
-        if (typeof user === 'string') setCurrentUser(user);
-        if (typeof query === 'string' && query.trim()) {
-            handleSend(query);
-            setInput(query);
+        if (initialQuery) {
+            handleSend();
         }
-    }, [user, query]);
+    }, []);
 
-    const handleSend = async (msg: string) => {
-        if (!msg.trim()) return;
-
-        setMessages((prev) => [...prev, `👤 ${msg}`]);
+    const handleSend = async () => {
+        if (!input.trim()) return;
 
         const res = await fetch('/api/proxy/chat-messages', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 inputs: {},
-                query: msg,
+                query: input,
                 response_mode: 'blocking',
-                conversation_id: conversationId,
-                user: currentUser,
+                conversation_id: conversationId || '',
+                user: userId,
             }),
         });
 
         const data = await res.json();
-        const answer = data?.answer || '(応答なし)';
-        setMessages((prev) => [...prev, `🤖 ${answer}`]);
 
-        if (data?.conversation_id) setConversationId(data.conversation_id);
+        setMessages((prev) => [
+            ...prev,
+            `👤 ${input}`,
+            `😺 ${data.answer || '[応答なし]'}`,
+        ]);
+
+        if (data.conversation_id && data.conversation_id !== conversationId) {
+            setConversationId(data.conversation_id);
+            const newHist = { id: data.conversation_id, title: input.slice(0, 15) || '新しい会話' };
+            setHistory((prev) => {
+                const exists = prev.find((h) => h.id === newHist.id);
+                return exists ? prev : [...prev, newHist];
+            });
+        }
         setInput('');
     };
 
-    const handleClick = () => {
-        handleSend(input);
-    };
-
-    const startNewConversation = () => {
-        setConversationId(null);
-        setMessages([]);
-    };
-
     return (
-        <div style={{ padding: '1.5rem', fontFamily: 'sans-serif' }}>
-            <h1>
-                Hello Sofia <span style={{ color: 'green' }}>✅</span>
-            </h1>
+        <div style={{ padding: '1rem', fontFamily: 'sans-serif' }}>
+            <h1>Hello Sofia ✅</h1>
+            <p>👤 ユーザーID: {userId}</p>
+            {conversationId && <p>🧠 会話ID: {conversationId}</p>}
 
-            <p>👤 ユーザーID: {currentUser}</p>
+            <div>
+                <label>💬 会話履歴：</label>
+                <select
+                    onChange={(e) => setConversationId(e.target.value)}
+                    value={conversationId || ''}
+                >
+                    <option value=''>新しい会話</option>
+                    {history.map((h) => (
+                        <option key={h.id} value={h.id}>{h.title}</option>
+                    ))}
+                </select>
+            </div>
 
-            <button onClick={startNewConversation}>🆕 新しい会話</button>
-
-            <div style={{ marginTop: '1rem', background: '#f6f6f6', padding: '1rem' }}>
+            <div style={{ margin: '1rem 0', background: '#f5f5f5', padding: '1rem' }}>
                 {messages.map((m, i) => (
                     <p key={i}>{m}</p>
                 ))}
             </div>
 
-            <div style={{ marginTop: '1rem' }}>
-                <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    style={{ width: '300px', marginRight: '0.5rem' }}
-                />
-                <button onClick={handleClick}>送信</button>
-            </div>
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                style={{ width: '300px', marginRight: '0.5rem' }}
+            />
+            <button onClick={handleSend}>送信</button>
         </div>
     );
 }
