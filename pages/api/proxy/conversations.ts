@@ -1,4 +1,4 @@
-// pages/api/proxy/messages.ts
+// pages/api/proxy/conversations.ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -12,20 +12,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Missing DIFY_API_KEY in env" });
     }
 
-    const { user, conversation_id } = req.query;
+    const { user } = req.query;
 
-    if (!user || typeof user !== "string" || !conversation_id || typeof conversation_id !== "string") {
-        return res.status(400).json({ error: "Missing 'user' or 'conversation_id'" });
+    if (!user || typeof user !== "string") {
+        return res.status(400).json({ error: "Missing or invalid 'user' parameter" });
     }
 
     const query = new URLSearchParams({
         user: user,
-        conversation_id: conversation_id,
-        limit: "50",
+        limit: "20",
+        sort_by: "-updated_at",
     });
 
     try {
-        const response = await fetch(`https://api.dify.ai/v1/messages?${query.toString()}`, {
+        const response = await fetch(`https://api.dify.ai/v1/conversations?${query.toString()}`, {
             headers: {
                 Authorization: `Bearer ${apiKey}`,
             },

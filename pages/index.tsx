@@ -22,37 +22,16 @@ export default function Home() {
     }, [queryUser, queryText]);
 
     useEffect(() => {
-        if (user && user !== "unknown") {
+        if (user !== "unknown") {
             fetch(`/api/proxy/conversations?user=${user}`)
                 .then((res) => res.json())
                 .then((data) => {
                     if (data?.data) {
-                        setHistory(data.data.map((conv: any) => ({
-                            id: conv.id,
-                            name: conv.name || conv.id.slice(0, 10),
-                        })));
+                        setHistory(data.data.map((c: any) => ({ id: c.id, name: c.name })));
                     }
                 });
         }
     }, [user]);
-
-    useEffect(() => {
-        if (conversationId) {
-            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data?.data) {
-                        const restored = data.data.map((msg: any) => [
-                            `🧑 ${msg.query}`,
-                            `😺 ${msg.answer || "[応答なし]"}`,
-                        ]).flat();
-                        setMessages(restored);
-                    } else {
-                        setMessages(["😺 [履歴が見つかりませんでした]"]);
-                    }
-                });
-        }
-    }, [conversationId]);
 
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
@@ -82,28 +61,48 @@ export default function Home() {
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
             setHistory((prev) => [
-                { id: data.conversation_id, name: text.slice(0, 10) },
                 ...prev,
+                { id: data.conversation_id, name: text.slice(0, 10) },
             ]);
         }
 
         setInput("");
     };
 
-    const handleSelectConversation = (id: string) => {
+    const handleSelectConversation = async (id: string) => {
         if (id === "new") {
             setConversationId(null);
             setMessages([]);
-        } else {
-            setConversationId(id);
+            return;
+        }
+
+        setConversationId(id);
+        setMessages(["⏳ 履歴を読み込み中..."]);
+
+        try {
+            const res = await fetch(`/api/proxy/messages?user=${user}&conversation_id=${id}`);
+            const data = await res.json();
+
+            if (!data || !data.data) {
+                setMessages(["⚠️ 履歴が見つかりませんでした"]);
+                return;
+            }
+
+            const historyMessages = data.data.map((m: any) => {
+                const q = m.query ? `🧑 ${m.query}` : "";
+                const a = m.answer ? `😺 ${m.answer}` : "";
+                return `${q}\n${a}`;
+            });
+
+            setMessages(historyMessages);
+        } catch (e) {
+            setMessages(["⚠️ 履歴取得中にエラーが発生しました"]);
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>
-                Hello Sofia ✅
-            </h1>
+            <h1>Hello Sofia ✅</h1>
 
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
@@ -133,7 +132,6 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 style={{ width: 300 }}
-                placeholder="メッセージを入力"
             />
             <button onClick={() => handleSend(input)}>送信</button>
         </div>

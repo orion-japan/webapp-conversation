@@ -1,9 +1,9 @@
-// pages/api/proxy/messages.ts
+// pages/api/proxy/chat-messages.ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "GET") {
+    if (req.method !== "POST") {
         return res.status(405).json({ error: "Method Not Allowed" });
     }
 
@@ -12,23 +12,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Missing DIFY_API_KEY in env" });
     }
 
-    const { user, conversation_id } = req.query;
-
-    if (!user || typeof user !== "string" || !conversation_id || typeof conversation_id !== "string") {
-        return res.status(400).json({ error: "Missing 'user' or 'conversation_id'" });
-    }
-
-    const query = new URLSearchParams({
-        user: user,
-        conversation_id: conversation_id,
-        limit: "50",
-    });
-
     try {
-        const response = await fetch(`https://api.dify.ai/v1/messages?${query.toString()}`, {
+        const response = await fetch("https://api.dify.ai/v1/chat-messages", {
+            method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${apiKey}`,
             },
+            body: JSON.stringify(req.body),
         });
 
         const data = await response.json();
