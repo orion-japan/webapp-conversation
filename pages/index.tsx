@@ -1,3 +1,4 @@
+// pages/index.tsx
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -12,13 +13,8 @@ export default function Home() {
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
-        if (typeof queryUser === "string") {
-            setUser(queryUser);
-        }
-
-        if (typeof queryText === "string" && queryText) {
-            handleSend(queryText);
-        }
+        if (typeof queryUser === "string") setUser(queryUser);
+        if (typeof queryText === "string" && queryText) handleSend(queryText);
     }, [queryUser, queryText]);
 
     const handleSend = async (text: string) => {
@@ -26,9 +22,7 @@ export default function Home() {
 
         const res = await fetch("/api/proxy/chat-messages", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 inputs: {},
                 query: text,
@@ -39,21 +33,11 @@ export default function Home() {
         });
 
         const data = await res.json();
-
-        setMessages((prev) => [
-            ...prev,
-            `🧑 ${text}`,
-            `😺 ${data.answer || "[応答なし]"}`,
-        ]);
+        setMessages((prev) => [...prev, `🧑 ${text}`, `😺 ${data.answer || "[応答なし]"}`]);
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-
-            // 会話履歴を更新
-            setHistory((prev) => [
-                ...prev,
-                { id: data.conversation_id, name: text.slice(0, 10) },
-            ]);
+            setHistory((prev) => [...prev, { id: data.conversation_id, name: text.slice(0, 10) }]);
         }
 
         setInput("");
@@ -65,45 +49,31 @@ export default function Home() {
             setMessages([]);
         } else {
             setConversationId(id);
-            setMessages([]); // DifyのAPIから履歴を取得したい場合はここに追加処理も可
+            setMessages([]);
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>
-                Hello Sofia ✅
-            </h1>
-
+            <h1>Hello Sofia ✅</h1>
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
 
             <label>
                 会話履歴：
-                <select
-                    onChange={(e) => handleSelectConversation(e.target.value)}
-                    value={conversationId || "new"}
-                >
+                <select onChange={(e) => handleSelectConversation(e.target.value)} value={conversationId || "new"}>
                     <option value="new">🆕 新しい会話</option>
                     {history.map((h) => (
-                        <option key={h.id} value={h.id}>
-                            {h.name}
-                        </option>
+                        <option key={h.id} value={h.id}>{h.name}</option>
                     ))}
                 </select>
             </label>
 
             <div style={{ margin: "1em 0", padding: 10, background: "#f5f5f5" }}>
-                {messages.map((m, i) => (
-                    <p key={i}>{m}</p>
-                ))}
+                {messages.map((m, i) => <p key={i}>{m}</p>)}
             </div>
 
-            <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                style={{ width: 300 }}
-            />
+            <input value={input} onChange={(e) => setInput(e.target.value)} style={{ width: 300 }} />
             <button onClick={() => handleSend(input)}>送信</button>
         </div>
     );
