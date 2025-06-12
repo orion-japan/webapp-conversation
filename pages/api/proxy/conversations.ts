@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         const response = await fetch(url, {
             headers: {
-                Authorization: `Bearer ${apiKey}`,
+                Authorization: apiKey, // ✅ ここ修正
             },
         });
 

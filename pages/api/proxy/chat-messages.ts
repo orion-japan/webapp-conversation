@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${apiKey}`,
+                Authorization: apiKey,  // ✅ 修正箇所
             },
             body: JSON.stringify(req.body),
         });
