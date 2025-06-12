@@ -1,4 +1,3 @@
-// pages/index.tsx
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -43,14 +42,12 @@ export default function Home() {
 
         setMessages((prev) => [
             ...prev,
-            `\u{1F9D1} ${text}`,
-            `\u{1F63A} ${data.answer || "[応答なし]"}`,
+            `🧑 ${text}`,
+            `😺 ${data.answer || "[応答なし]"}`,
         ]);
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-
-            // 会話名もDifyから取得（仮に直後はqueryTextを仮名とする）
             setHistory((prev) => [
                 ...prev,
                 { id: data.conversation_id, name: text.slice(0, 10) },
@@ -66,22 +63,27 @@ export default function Home() {
             setMessages([]);
         } else {
             setConversationId(id);
-            const res = await fetch(`/api/proxy/messages?conversation_id=${id}&user=${user}`);
+            setMessages([]);
+
+            const res = await fetch(`/api/proxy/messages?user=${user}&conversation_id=${id}`);
             const data = await res.json();
 
-            const sorted = data.data.reverse();
-            const restoredMessages = sorted.flatMap((m: any) => [
-                `\u{1F9D1} ${m.query}`,
-                `\u{1F63A} ${m.answer || "[応答なし]"}`,
-            ]);
+            if (data?.data?.length) {
+                const restoredMessages = data.data.reverse().map((msg: any) => [
+                    `🧑 ${msg.query}`,
+                    `😺 ${msg.answer || "[応答なし]"}`,
+                ]).flat();
 
-            setMessages(restoredMessages);
+                setMessages(restoredMessages);
+            }
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>Hello Sofia ✅</h1>
+            <h1>
+                Hello Sofia ✅
+            </h1>
 
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
@@ -111,7 +113,6 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 style={{ width: 300 }}
-                placeholder="メッセージを入力"
             />
             <button onClick={() => handleSend(input)}>送信</button>
         </div>
