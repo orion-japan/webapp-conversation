@@ -11,7 +11,6 @@ export default function Home() {
     const [user, setUser] = useState<string>("unknown");
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
-    // 初期ユーザー・クエリ設定
     useEffect(() => {
         if (typeof queryUser === "string") {
             setUser(queryUser);
@@ -22,47 +21,6 @@ export default function Home() {
         }
     }, [queryUser, queryText]);
 
-    // 履歴を取得（初回だけ）
-    useEffect(() => {
-        if (user && user !== "unknown") {
-            fetch(`/api/proxy/conversations?user=${user}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data?.data) {
-                        setHistory(
-                            data.data.map((conv: any) => ({
-                                id: conv.id,
-                                name: conv.name || conv.id.slice(0, 10),
-                            }))
-                        );
-                    }
-                });
-        }
-    }, [user]);
-
-    // 履歴から選択したときに会話内容を復元
-    useEffect(() => {
-        if (conversationId) {
-            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data?.data) {
-                        const restored = data.data
-                            .slice()
-                            .reverse()
-                            .flatMap((msg: any) => [
-                                `🧑 ${msg.query}`,
-                                `😺 ${msg.answer || "[応答なし]"}`,
-                            ]);
-                        setMessages(restored);
-                    } else {
-                        setMessages(["😺 [履歴が見つかりませんでした]"]);
-                    }
-                });
-        }
-    }, [conversationId]);
-
-    // メッセージ送信
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
 
@@ -90,29 +48,33 @@ export default function Home() {
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-            setHistory((prev) => {
-                if (prev.find((h) => h.id === data.conversation_id)) return prev;
-                return [{ id: data.conversation_id, name: text.slice(0, 10) }, ...prev];
-            });
+
+            // 会話履歴を更新
+            setHistory((prev) => [
+                ...prev,
+                { id: data.conversation_id, name: text.slice(0, 10) },
+            ]);
         }
 
         setInput("");
     };
 
-    // 履歴から会話選択
     const handleSelectConversation = (id: string) => {
         if (id === "new") {
             setConversationId(null);
             setMessages([]);
         } else {
             setConversationId(id);
-            setMessages([]); // 履歴読み込みはuseEffectで
+            setMessages([]); // DifyのAPIから履歴を取得したい場合はここに追加処理も可
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>Hello Sofia ✅</h1>
+            <h1>
+                Hello Sofia ✅
+            </h1>
+
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
 
@@ -141,7 +103,6 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 style={{ width: 300 }}
-                placeholder="メッセージを入力"
             />
             <button onClick={() => handleSend(input)}>送信</button>
         </div>
