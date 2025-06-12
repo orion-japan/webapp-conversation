@@ -1,22 +1,73 @@
-import { useState } from 'react';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 
 export default function Home() {
-    const [input, setInput] = useState('');
+    const router = useRouter();
+    const { user: queryUser, query: queryText } = router.query;
+
+    const [input, setInput] = useState("");
     const [messages, setMessages] = useState<string[]>([]);
     const [conversationId, setConversationId] = useState<string | null>(null);
+    const [user, setUser] = useState<string>("unknown");
+    const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+    useEffect(() => {
+        if (typeof queryUser === "string") {
+            setUser(queryUser);
+        }
 
-        const res = await fetch('/api/proxy/chat-messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        if (typeof queryText === "string" && queryText) {
+            handleSend(queryText);
+        }
+    }, [queryUser, queryText]);
+
+    useEffect(() => {
+        if (user && user !== "unknown") {
+            fetch(`/api/proxy/conversations?user=${user}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data?.data) {
+                        setHistory(data.data.map((conv: any) => ({
+                            id: conv.id,
+                            name: conv.name || conv.id.slice(0, 10),
+                        })));
+                    }
+                });
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (conversationId) {
+            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data?.data) {
+                        const restored = data.data.map((msg: any) => [
+                            `🧑 ${msg.query}`,
+                            `😺 ${msg.answer || "[応答なし]"}`,
+                        ]).flat();
+                        setMessages(restored);
+                    } else {
+                        setMessages(["😺 [履歴が見つかりませんでした]"]);
+                    }
+                });
+        }
+    }, [conversationId]);
+
+    const handleSend = async (text: string) => {
+        if (!text.trim()) return;
+
+        const res = await fetch("/api/proxy/chat-messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
                 inputs: {},
-                query: input,
-                response_mode: 'blocking',
+                query: text,
+                response_mode: "blocking",
                 conversation_id: conversationId,
-                user: 'user-001',
+                user: user,
             }),
         });
 
@@ -24,21 +75,58 @@ export default function Home() {
 
         setMessages((prev) => [
             ...prev,
-            `🧑 ${input}`,
-            `😺 ${data.answer || '[応答なし]'}`,
+            `🧑 ${text}`,
+            `😺 ${data.answer || "[応答なし]"}`,
         ]);
 
-        if (data.conversation_id) setConversationId(data.conversation_id);
-        setInput('');
+        if (data.conversation_id && data.conversation_id !== conversationId) {
+            setConversationId(data.conversation_id);
+            setHistory((prev) => [
+                { id: data.conversation_id, name: text.slice(0, 10) },
+                ...prev,
+            ]);
+        }
+
+        setInput("");
+    };
+
+    const handleSelectConversation = (id: string) => {
+        if (id === "new") {
+            setConversationId(null);
+            setMessages([]);
+        } else {
+            setConversationId(id);
+        }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>Hello Sofia ✅</h1>
-            <p>🧑 会話ID: {conversationId || '(新規)'}</p>
+            <h1>
+                Hello Sofia ✅
+            </h1>
 
-            <div style={{ background: '#eee', padding: 10, marginBottom: 10 }}>
-                {messages.map((m, i) => <p key={i}>{m}</p>)}
+            <p>👤 ユーザーID: {user}</p>
+            <p>💬 会話ID: {conversationId || "(なし)"}</p>
+
+            <label>
+                会話履歴：
+                <select
+                    onChange={(e) => handleSelectConversation(e.target.value)}
+                    value={conversationId || "new"}
+                >
+                    <option value="new">🆕 新しい会話</option>
+                    {history.map((h) => (
+                        <option key={h.id} value={h.id}>
+                            {h.name}
+                        </option>
+                    ))}
+                </select>
+            </label>
+
+            <div style={{ margin: "1em 0", padding: 10, background: "#f5f5f5" }}>
+                {messages.map((m, i) => (
+                    <p key={i}>{m}</p>
+                ))}
             </div>
 
             <input
@@ -47,7 +135,7 @@ export default function Home() {
                 style={{ width: 300 }}
                 placeholder="メッセージを入力"
             />
-            <button onClick={handleSend}>送信</button>
+            <button onClick={() => handleSend(input)}>送信</button>
         </div>
     );
 }
