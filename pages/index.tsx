@@ -21,6 +21,20 @@ export default function Home() {
         }
     }, [queryUser, queryText]);
 
+    useEffect(() => {
+        if (conversationId) {
+            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    const newMessages = data.data
+                        .slice()
+                        .reverse()
+                        .flatMap((msg: any) => [`🧑 ${msg.query}`, `😺 ${msg.answer || "[応答なし]"}`]);
+                    setMessages(newMessages);
+                });
+        }
+    }, [conversationId]);
+
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
 
@@ -48,42 +62,29 @@ export default function Home() {
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-            setHistory((prev) => [
-                ...prev,
-                { id: data.conversation_id, name: text.slice(0, 10) },
-            ]);
+
+            setHistory((prev) => {
+                if (prev.find((h) => h.id === data.conversation_id)) return prev;
+                return [...prev, { id: data.conversation_id, name: text.slice(0, 10) }];
+            });
         }
 
         setInput("");
     };
 
-    const handleSelectConversation = async (id: string) => {
+    const handleSelectConversation = (id: string) => {
         if (id === "new") {
             setConversationId(null);
             setMessages([]);
         } else {
             setConversationId(id);
             setMessages([]);
-
-            const res = await fetch(`/api/proxy/messages?user=${user}&conversation_id=${id}`);
-            const data = await res.json();
-
-            if (data?.data?.length) {
-                const restoredMessages = data.data.reverse().map((msg: any) => [
-                    `🧑 ${msg.query}`,
-                    `😺 ${msg.answer || "[応答なし]"}`,
-                ]).flat();
-
-                setMessages(restoredMessages);
-            }
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>
-                Hello Sofia ✅
-            </h1>
+            <h1>Hello Sofia ✅</h1>
 
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
