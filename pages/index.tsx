@@ -1,37 +1,40 @@
-// pages/index.tsx
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 
 export default function Home() {
     const router = useRouter();
-    const { query } = router;
-    const initialQuery = typeof query.query === 'string' ? query.query : '';
-    const initialUser = typeof query.user === 'string' ? query.user : 'unknown';
+    const { user: queryUser, query: queryText } = router.query;
 
+    const [input, setInput] = useState("");
     const [messages, setMessages] = useState<string[]>([]);
-    const [input, setInput] = useState(initialQuery);
-    const [conversationId, setConversationId] = useState<string>('');
-    const [userId] = useState(initialUser);
-    const [history, setHistory] = useState<{ id: string; title: string }[]>([]);
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [user, setUser] = useState<string>("unknown");
+    const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
-        if (initialQuery) {
-            handleSend();
+        if (typeof queryUser === "string") {
+            setUser(queryUser);
         }
-    }, []);
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+        if (typeof queryText === "string" && queryText) {
+            handleSend(queryText);
+        }
+    }, [queryUser, queryText]);
 
-        const res = await fetch('/api/proxy/chat-messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+    const handleSend = async (text: string) => {
+        if (!text.trim()) return;
+
+        const res = await fetch("/api/proxy/chat-messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
                 inputs: {},
-                query: input,
-                response_mode: 'blocking',
-                conversation_id: conversationId || '',
-                user: userId,
+                query: text,
+                response_mode: "blocking",
+                conversation_id: conversationId,
+                user: user,
             }),
         });
 
@@ -39,41 +42,58 @@ export default function Home() {
 
         setMessages((prev) => [
             ...prev,
-            `👤 ${input}`,
-            `😺 ${data.answer || '[応答なし]'}`,
+            `🧑 ${text}`,
+            `😺 ${data.answer || "[応答なし]"}`,
         ]);
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-            const newHist = { id: data.conversation_id, title: input.slice(0, 15) || '新しい会話' };
-            setHistory((prev) => {
-                const exists = prev.find((h) => h.id === newHist.id);
-                return exists ? prev : [...prev, newHist];
-            });
+
+            // 会話履歴を更新
+            setHistory((prev) => [
+                ...prev,
+                { id: data.conversation_id, name: text.slice(0, 10) },
+            ]);
         }
-        setInput('');
+
+        setInput("");
+    };
+
+    const handleSelectConversation = (id: string) => {
+        if (id === "new") {
+            setConversationId(null);
+            setMessages([]);
+        } else {
+            setConversationId(id);
+            setMessages([]); // DifyのAPIから履歴を取得したい場合はここに追加処理も可
+        }
     };
 
     return (
-        <div style={{ padding: '1rem', fontFamily: 'sans-serif' }}>
-            <h1>Hello Sofia ✅</h1>
-            <p>👤 ユーザーID: {userId}</p>
-            {conversationId && <p>🧠 会話ID: {conversationId}</p>}
+        <div style={{ padding: 20 }}>
+            <h1>
+                Hello Sofia ✅
+            </h1>
 
-            <div>
-                <label>💬 会話履歴：</label>
+            <p>👤 ユーザーID: {user}</p>
+            <p>💬 会話ID: {conversationId || "(なし)"}</p>
+
+            <label>
+                会話履歴：
                 <select
-                    onChange={(e) => setConversationId(e.target.value)}
-                    value={conversationId || ''}
+                    onChange={(e) => handleSelectConversation(e.target.value)}
+                    value={conversationId || "new"}
                 >
-                    <option value=''>新しい会話</option>
+                    <option value="new">🆕 新しい会話</option>
                     {history.map((h) => (
-                        <option key={h.id} value={h.id}>{h.title}</option>
+                        <option key={h.id} value={h.id}>
+                            {h.name}
+                        </option>
                     ))}
                 </select>
-            </div>
+            </label>
 
-            <div style={{ margin: '1rem 0', background: '#f5f5f5', padding: '1rem' }}>
+            <div style={{ margin: "1em 0", padding: 10, background: "#f5f5f5" }}>
                 {messages.map((m, i) => (
                     <p key={i}>{m}</p>
                 ))}
@@ -82,9 +102,9 @@ export default function Home() {
             <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                style={{ width: '300px', marginRight: '0.5rem' }}
+                style={{ width: 300 }}
             />
-            <button onClick={handleSend}>送信</button>
+            <button onClick={() => handleSend(input)}>送信</button>
         </div>
     );
 }
