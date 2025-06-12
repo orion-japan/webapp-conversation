@@ -11,10 +11,17 @@ export default function ChatPage() {
     const router = useRouter();
     const { conversation_id } = router.query;
     const [currentId, setCurrentId] = useState(conversation_id);
+    const [message, setMessage] = useState("");
 
     useEffect(() => {
         if (conversation_id) setCurrentId(conversation_id);
     }, [conversation_id]);
+
+    const handleSend = () => {
+        if (message.trim() === "") return;
+        alert(`送信されたメッセージ: ${message}`);
+        setMessage("");
+    };
 
     return (
         <div className="flex flex-col md:flex-row min-h-screen">
@@ -33,8 +40,8 @@ export default function ChatPage() {
                 ))}
             </div>
 
-            {/* チャットエリア（中央寄せ） */}
-            <div className="md:w-3/4 w-full p-6 flex flex-col items-center">
+            {/* チャットエリア（中央寄せ＋送信機能） */}
+            <div className="md:w-3/4 w-full p-6 flex justify-center">
                 <div className="w-full max-w-xl">
                     <h1 className="text-2xl font-bold mb-4">Hello Sofia ✅</h1>
 
@@ -46,9 +53,16 @@ export default function ChatPage() {
                         <input
                             type="text"
                             placeholder="メッセージを入力..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
                             className="flex-grow px-4 py-2 border rounded-l"
                         />
-                        <button className="bg-blue-500 text-white px-4 py-2 rounded-r">送信</button>
+                        <button
+                            onClick={handleSend}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-r"
+                        >
+                            送信
+                        </button>
                     </div>
                 </div>
             </div>
