@@ -1,109 +1,83 @@
 // pages/index.tsx
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 
 export default function Home() {
-    const [messages, setMessages] = useState<string[]>([]);
+    const router = useRouter();
+    const { user, query } = router.query;
+
     const [input, setInput] = useState('');
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const [userId, setUserId] = useState<string>('');
-    const [historyIds, setHistoryIds] = useState<string[]>([]);
+    const [messages, setMessages] = useState<string[]>([]);
+    const [currentUser, setCurrentUser] = useState('');
 
-    // URLパラメータから初期化
     useEffect(() => {
-        const url = new URL(window.location.href);
-        const uid = url.searchParams.get('user');
-        const cid = url.searchParams.get('conversation_id');
-        const query = url.searchParams.get('query');
-        if (uid) setUserId(uid);
-        if (cid) setConversationId(cid);
-        if (query) {
-            sendMessage(query);
+        if (typeof user === 'string') setCurrentUser(user);
+        if (typeof query === 'string' && query.trim()) {
+            handleSend(query);
+            setInput(query);
         }
-    }, []);
+    }, [user, query]);
 
-    // 会話履歴取得
-    useEffect(() => {
-        if (!conversationId) return;
-        const fetchMessages = async () => {
-            const res = await fetch(`/api/proxy?path=messages&conversation_id=${conversationId}`);
-            const data = await res.json();
-            const history = data.map((msg: any) =>
-                msg.answer ? `🤖 ${msg.answer}` : `👤 ${msg.inputs?.text || '[User]'}`
-            );
-            setMessages(history);
-        };
-        fetchMessages();
-    }, [conversationId]);
+    const handleSend = async (msg: string) => {
+        if (!msg.trim()) return;
 
-    // 会話一覧取得（ID用）
-    useEffect(() => {
-        const loadConversations = async () => {
-            const res = await fetch(`/api/proxy?path=conversations`);
-            const data = await res.json();
-            const ids = data.map((c: any) => c.id);
-            setHistoryIds(ids);
-        };
-        loadConversations();
-    }, []);
+        setMessages((prev) => [...prev, `👤 ${msg}`]);
 
-    const sendMessage = async (text?: string) => {
-        const message = text || input;
-        if (!message.trim()) return;
-
-        const res = await fetch('/api/proxy?path=chat-messages', {
+        const res = await fetch('/api/proxy/chat-messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
-                inputs: { text: message },
-                query: message,
+                inputs: {},
+                query: msg,
                 response_mode: 'blocking',
                 conversation_id: conversationId,
-                user: userId,
+                user: currentUser,
             }),
         });
 
         const data = await res.json();
-        setMessages((prev) => [
-            ...prev,
-            `👤 ${message}`,
-            `🤖 ${data.answer || '(応答なし)'}`,
-        ]);
+        const answer = data?.answer || '(応答なし)';
+        setMessages((prev) => [...prev, `🤖 ${answer}`]);
 
-        if (data.conversation_id) setConversationId(data.conversation_id);
+        if (data?.conversation_id) setConversationId(data.conversation_id);
         setInput('');
     };
 
+    const handleClick = () => {
+        handleSend(input);
+    };
+
+    const startNewConversation = () => {
+        setConversationId(null);
+        setMessages([]);
+    };
+
     return (
-        <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-            <h1>Hello Sofia ✅</h1>
-            {conversationId && <p>🧠 会話ID: <strong>{conversationId}</strong></p>}
-            {userId && <p>👤 ユーザーID: <strong>{userId}</strong></p>}
+        <div style={{ padding: '1.5rem', fontFamily: 'sans-serif' }}>
+            <h1>
+                Hello Sofia <span style={{ color: 'green' }}>✅</span>
+            </h1>
 
-            {/* 履歴ID選択 */}
-            <select
-                onChange={(e) => setConversationId(e.target.value)}
-                value={conversationId || ''}
-                style={{ marginBottom: '1rem' }}
-            >
-                <option value="">🆕 新しい会話</option>
-                {historyIds.map((id) => (
-                    <option key={id} value={id}>{id}</option>
-                ))}
-            </select>
+            <p>👤 ユーザーID: {currentUser}</p>
 
-            <div style={{ marginBottom: '1rem', background: '#f9f9f9', padding: '1rem' }}>
+            <button onClick={startNewConversation}>🆕 新しい会話</button>
+
+            <div style={{ marginTop: '1rem', background: '#f6f6f6', padding: '1rem' }}>
                 {messages.map((m, i) => (
                     <p key={i}>{m}</p>
                 ))}
             </div>
 
-            <div>
+            <div style={{ marginTop: '1rem' }}>
                 <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     style={{ width: '300px', marginRight: '0.5rem' }}
                 />
-                <button onClick={() => sendMessage()}>送信</button>
+                <button onClick={handleClick}>送信</button>
             </div>
         </div>
     );
