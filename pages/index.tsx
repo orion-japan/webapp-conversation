@@ -11,49 +11,72 @@ export default function Home() {
     const [user, setUser] = useState<string>("unknown");
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
+    // 初回 user/query 取得
     useEffect(() => {
-        if (typeof queryUser === "string") {
-            setUser(queryUser);
-        }
-
+        if (typeof queryUser === "string") setUser(queryUser);
         if (typeof queryText === "string" && queryText) {
             handleSend(queryText);
         }
     }, [queryUser, queryText]);
 
+    // 会話履歴の取得
     useEffect(() => {
         if (user && user !== "unknown") {
             fetch(`/api/proxy/conversations?user=${user}`)
                 .then((res) => res.json())
                 .then((data) => {
                     if (data?.data) {
-                        setHistory(data.data.map((conv: any) => ({
-                            id: conv.id,
-                            name: conv.name || conv.id.slice(0, 10),
-                        })));
+                        setHistory(
+                            data.data.map((conv: any) => ({
+                                id: conv.id,
+                                name: conv.name || conv.id.slice(0, 10),
+                            }))
+                        );
                     }
                 });
         }
     }, [user]);
 
+    // 会話ID変更時：履歴読み込み（1秒待機してから）
     useEffect(() => {
         if (conversationId) {
-            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data?.data) {
-                        const restored = data.data.map((msg: any) => [
-                            `🧑 ${msg.query}`,
-                            `😺 ${msg.answer || "[応答なし]"}`,
-                        ]).flat();
-                        setMessages(restored);
-                    } else {
-                        setMessages(["😺 [履歴が見つかりませんでした]"]);
-                    }
-                });
+            setMessages(["📥 履歴を読み込み中..."]);
+
+            const timeout = setTimeout(() => {
+                fetch(
+                    `/api/proxy/messages?user=${user}&conversation_id=${conversationId}`
+                )
+                    .then((res) => {
+                        if (!res.ok) throw new Error("履歴取得失敗");
+                        return res.json();
+                    })
+                    .then((data) => {
+                        if (data?.data?.length > 0) {
+                            const restored = data.data
+                                .map((msg: any) => [
+                                    `🧑 ${msg.query}`,
+                                    `😺 ${msg.answer || "[応答なし]"}`,
+                                ])
+                                .flat();
+                            setMessages(restored);
+                        } else {
+                            setMessages(["😺 [履歴が見つかりませんでした]"]);
+                        }
+                    })
+                    .catch((err) => {
+                        setMessages([
+                            `🚫 履歴の取得中にエラーが発生しました：${err.message}`,
+                        ]);
+                    });
+            }, 1000); // ← ディレイ挿入
+
+            return () => clearTimeout(timeout);
+        } else {
+            setMessages([]);
         }
     }, [conversationId]);
 
+    // メッセージ送信
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
 
@@ -101,9 +124,7 @@ export default function Home() {
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>
-                Hello Sofia ✅
-            </h1>
+            <h1>Hello Sofia ✅</h1>
 
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
