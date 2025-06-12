@@ -1,42 +1,33 @@
+// pages/index.tsx
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
 export default function Home() {
     const router = useRouter();
-    const { query: queryParam, user: userParam } = router.query;
-
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<string[]>([]);
-    const [conversationId, setConversationId] = useState<string>('');
-    const [userId, setUserId] = useState<string>('');
-    const [historyList, setHistoryList] = useState<{ id: string; name: string }[]>([]);
+    const [conversationId, setConversationId] = useState('');
+    const [userId, setUserId] = useState('');
+    const [conversations, setConversations] = useState<{ id: string, name: string }[]>([]);
 
     useEffect(() => {
-        if (typeof userParam === 'string') setUserId(userParam);
-    }, [userParam]);
-
-    useEffect(() => {
-        if (queryParam && typeof queryParam === 'string') {
-            sendMessage(queryParam);
+        const query = router.query.query as string || '';
+        const user = router.query.user as string || '';
+        if (user) setUserId(user);
+        if (query) {
+            handleSend(query);
         }
-    }, [queryParam]);
+        fetch(`/api/proxy/conversations?user=${user}`).then(res => res.json()).then(data => {
+            setConversations((data.data || []).map((c: any) => ({
+                id: c.id,
+                name: c.name || '(無題)'
+            })));
+        });
+    }, [router.query]);
 
-    useEffect(() => {
-        if (userId) {
-            fetch(`/api/proxy/conversations?user=${userId}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data.data) {
-                        setHistoryList(data.data);
-                    }
-                });
-        }
-    }, [userId]);
-
-    const sendMessage = async (text: string) => {
-        if (!text) return;
-
-        const res = await fetch('/api/proxy/chat-messages', {
+    const handleSend = async (text: string) => {
+        setMessages(prev => [...prev, `👤 ${text}`]);
+        const res = await fetch(`/api/proxy/chat-messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -45,60 +36,51 @@ export default function Home() {
                 response_mode: 'blocking',
                 conversation_id: conversationId || undefined,
                 user: userId,
-            }),
+            })
         });
-
         const data = await res.json();
-        setMessages((prev) => [...prev, `👤 ${text}`, `😺 ${data.answer || '[応答なし]'}`]);
+        if (data.answer) {
+            setMessages(prev => [...prev, `😼 ${data.answer}`]);
+        } else {
+            setMessages(prev => [...prev, `😼 [応答なし]`]);
+        }
         if (data.conversation_id) setConversationId(data.conversation_id);
-        setInput('');
     };
 
-    const handleSelectHistory = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedId = e.target.value;
-        setConversationId(selectedId);
-        // 会話履歴取得＆表示
-        fetch(`/api/proxy/messages?conversation_id=${selectedId}&user=${userId}`)
-            .then((res) => res.json())
-            .then((data) => {
-                const restored = data.data?.map((msg: any) => `${msg.role === 'user' ? '👤' : '😺'} ${msg.content}`) || [];
-                setMessages(restored);
-            });
-    };
+    const onSelectConversation = (id: string) => {
+        setConversationId(id);
+        setMessages([]);
+    }
 
     return (
-        <div style={{ padding: 20, fontFamily: 'sans-serif' }}>
-            <h1>
-                Hello Sofia <span style={{ color: 'green' }}>✅</span>
-            </h1>
+        <div style={{ padding: '1rem' }}>
+            <h1>Hello Sofia ✅</h1>
             <p>👤 ユーザーID: {userId || 'unknown'}</p>
-            <p>🧠 会話ID: {conversationId || '（未接続）'}</p>
-            <label>
+            <p>📎 会話ID: {conversationId || '(未接続)'}</p>
+
+            <div>
                 会話履歴：
-                <select onChange={handleSelectHistory} value={conversationId}>
+                <select value={conversationId} onChange={(e) => onSelectConversation(e.target.value)}>
                     <option value="">🆕 新しい会話</option>
-                    {historyList.map((h) => (
-                        <option key={h.id} value={h.id}>
-                            {h.name || h.id.slice(0, 12)}
-                        </option>
+                    {conversations.map(c => (
+                        <option key={c.id} value={c.id}>📁 {c.name}</option>
                     ))}
                 </select>
-            </label>
+            </div>
 
-            <div style={{ background: '#f5f5f5', margin: '20px 0', padding: 10 }}>
-                {messages.map((msg, idx) => (
-                    <p key={idx}>{msg}</p>
+            <div style={{ background: '#f4f4f4', padding: '1rem', margin: '1rem 0' }}>
+                {messages.map((m, i) => (
+                    <p key={i}>{m}</p>
                 ))}
             </div>
 
             <input
-                style={{ width: '300px', marginRight: 10 }}
+                style={{ width: '300px' }}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
+                onChange={e => setInput(e.target.value)}
                 placeholder="メッセージを入力"
             />
-            <button onClick={() => sendMessage(input)}>送信</button>
+            <button onClick={() => handleSend(input)}>送信</button>
         </div>
     );
 }
