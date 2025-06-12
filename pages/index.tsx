@@ -1,4 +1,3 @@
-// pages/index.tsx
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -28,30 +27,32 @@ export default function Home() {
                 .then((res) => res.json())
                 .then((data) => {
                     if (data?.data) {
-                        setHistory(data.data.map((c: any) => ({ id: c.id, name: c.name })));
+                        setHistory(data.data.map((conv: any) => ({
+                            id: conv.id,
+                            name: conv.name || conv.id.slice(0, 10),
+                        })));
                     }
                 });
         }
     }, [user]);
 
-    const fetchMessagesForConversation = async (conversationId: string) => {
-        const res = await fetch(
-            `/api/proxy/messages?user=${user}&conversation_id=${conversationId}`
-        );
-        const data = await res.json();
-
-        if (data?.data) {
-            const formatted = data.data
-                .reverse()
-                .flatMap((msg: any) => [
-                    `🧑 ${msg.query || "[質問なし]"}`,
-                    `😺 ${msg.answer || "[応答なし]"}`,
-                ]);
-            setMessages(formatted);
-        } else {
-            setMessages(["😺 [履歴が見つかりませんでした]"]);
+    useEffect(() => {
+        if (conversationId) {
+            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data?.data) {
+                        const restored = data.data.map((msg: any) => [
+                            `🧑 ${msg.query}`,
+                            `😺 ${msg.answer || "[応答なし]"}`,
+                        ]).flat();
+                        setMessages(restored);
+                    } else {
+                        setMessages(["😺 [履歴が見つかりませんでした]"]);
+                    }
+                });
         }
-    };
+    }, [conversationId]);
 
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
@@ -81,8 +82,8 @@ export default function Home() {
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
             setHistory((prev) => [
-                ...prev,
                 { id: data.conversation_id, name: text.slice(0, 10) },
+                ...prev,
             ]);
         }
 
@@ -95,14 +96,13 @@ export default function Home() {
             setMessages([]);
         } else {
             setConversationId(id);
-            fetchMessagesForConversation(id);
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
             <h1>
-                Hello Sofia <span style={{ color: "green" }}>✅</span>
+                Hello Sofia ✅
             </h1>
 
             <p>👤 ユーザーID: {user}</p>
