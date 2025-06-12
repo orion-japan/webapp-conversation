@@ -12,6 +12,7 @@ export default function ChatPage() {
     const { conversation_id } = router.query;
     const [currentId, setCurrentId] = useState(conversation_id);
     const [message, setMessage] = useState("");
+    const [messages, setMessages] = useState<string[]>([]);
 
     useEffect(() => {
         if (conversation_id) setCurrentId(conversation_id);
@@ -19,7 +20,7 @@ export default function ChatPage() {
 
     const handleSend = () => {
         if (message.trim() === "") return;
-        alert(`送信されたメッセージ: ${message}`);
+        setMessages([...messages, message]);
         setMessage("");
     };
 
@@ -40,13 +41,23 @@ export default function ChatPage() {
                 ))}
             </div>
 
-            {/* チャットエリア（中央寄せ＋送信機能） */}
+            {/* チャットエリア（中央寄せ） */}
             <div className="md:w-3/4 w-full p-6 flex justify-center">
                 <div className="w-full max-w-xl">
                     <h1 className="text-2xl font-bold mb-4">Hello Sofia ✅</h1>
 
                     <div className="border rounded p-4 mb-4 bg-white min-h-[200px]">
-                        <p>ここに選択中の会話（{currentId}）のメッセージが表示されます。</p>
+                        {messages.length === 0 ? (
+                            <p>ここに選択中の会話（{currentId}）のメッセージが表示されます。</p>
+                        ) : (
+                            <ul className="space-y-2">
+                                {messages.map((msg, index) => (
+                                    <li key={index} className="bg-gray-100 p-2 rounded text-sm">
+                                        {msg}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
 
                     <div className="flex">
