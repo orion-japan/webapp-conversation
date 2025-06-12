@@ -1,51 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
 export default function Home() {
-    const router = useRouter();
-    const { query: routerQuery } = router;
-
-    const [messages, setMessages] = useState<string[]>([]);
     const [input, setInput] = useState('');
+    const [messages, setMessages] = useState<string[]>([]);
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const [userId, setUserId] = useState<string>(''); // ← URLから取得
+    const [userId, setUserId] = useState<string>(''); // Clickから受け取る
 
-    // ✅ 初回読み込み時にURLの user, query を反映
+    const router = useRouter();
+
     useEffect(() => {
-        if (typeof routerQuery.user === 'string') {
-            setUserId(routerQuery.user);
-        }
+        const user = router.query.user as string;
+        const query = router.query.query as string;
 
-        if (typeof routerQuery.query === 'string') {
-            setInput(routerQuery.query);
-            handleSend(routerQuery.query); // 初期メッセージ送信
-        }
-    }, [routerQuery]);
+        if (user) setUserId(user);
 
-    const handleSend = async (overrideText?: string) => {
-        const textToSend = overrideText || input;
-        if (!textToSend.trim()) return;
+        if (query && user) {
+            sendMessage(query, user);
+        }
+    }, [router.query]);
+
+    const sendMessage = async (customInput?: string, customUser?: string) => {
+        const finalInput = customInput ?? input;
+        const finalUser = customUser ?? userId;
+
+        if (!finalInput.trim()) return;
 
         const res = await fetch('/api/proxy/chat-messages', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                inputs: { text: textToSend },
-                query: textToSend,
+                inputs: {},
+                query: finalInput,
                 response_mode: 'blocking',
                 conversation_id: conversationId,
-                user: userId || 'default-user',
+                user: finalUser,
             }),
         });
 
         const data = await res.json();
-        console.log('🎯 Dify response:', data);
 
         setMessages((prev) => [
             ...prev,
-            `👤 ${textToSend}`,
+            `👤 ${finalInput}`,
             `🤖 ${data.answer || '(応答なし)'}`,
         ]);
 
@@ -53,35 +50,30 @@ export default function Home() {
             setConversationId(data.conversation_id);
         }
 
-        if (!overrideText) setInput('');
+        setInput('');
     };
 
     return (
         <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-            <h1>
-                Hello Sofia <span style={{ color: 'green' }}>✅</span>
-            </h1>
-
+            <h1>Hello Sofia ✅</h1>
             {conversationId && (
                 <p>🧠 会話ID: <strong>{conversationId}</strong></p>
             )}
             {userId && (
                 <p>👤 ユーザーID: <strong>{userId}</strong></p>
             )}
-
-            <div style={{ background: '#f8f8f8', padding: '1rem', marginBottom: '1rem' }}>
-                {messages.map((m, i) => (
-                    <p key={i}>{m}</p>
+            <div style={{ background: '#f8f8f8', padding: '1rem', minHeight: '150px' }}>
+                {messages.map((msg, i) => (
+                    <p key={i}>{msg}</p>
                 ))}
             </div>
-
-            <div>
+            <div style={{ marginTop: '1rem' }}>
                 <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     style={{ width: '300px', marginRight: '0.5rem' }}
                 />
-                <button onClick={() => handleSend()}>送信</button>
+                <button onClick={() => sendMessage()}>送信</button>
             </div>
         </div>
     );
