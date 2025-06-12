@@ -1,4 +1,16 @@
-// 消すかコメントアウト
 {
-    "rewrites": []
+    "rewrites": [
+        {
+            "source": "/sofia/api/(.*)",
+            "destination": "/api/$1"
+        },
+        {
+            "source": "/sofia",
+            "destination": "/"
+        },
+        {
+            "source": "/sofia/(.*)",
+            "destination": "/$1"
+        }
+    ]
 }
