@@ -1,91 +1,116 @@
+// pages/index.tsx
+
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useRouter } from 'next/router';
 
 export default function Home() {
-    const [messages, setMessages] = useState<any[]>([]);
-    const [input, setInput] = useState('');
+    const router = useRouter();
+    const { user, query } = router.query;
+
     const [conversationId, setConversationId] = useState('');
+    const [input, setInput] = useState(query || '');
+    const [messages, setMessages] = useState<string[]>([]);
     const [conversations, setConversations] = useState<any[]>([]);
-    const [userId, setUserId] = useState('669933'); // ユーザーID（Clickから動的に受け取る場合は調整）
+    const [selectedConversationId, setSelectedConversationId] = useState('');
 
-    // 会話一覧を取得
-    useEffect(() => {
-        if (!userId) return;
-        axios.get(`/api/proxy/conversations?user=${userId}`)
-            .then(res => setConversations(res.data.data))
-            .catch(console.error);
-    }, [userId]);
+    const apiKey = process.env.NEXT_PUBLIC_DIFY_API_KEY;
 
-    // 会話メッセージ履歴を取得
-    useEffect(() => {
-        if (!conversationId) return;
-        axios.get(`/api/proxy/messages?user=${userId}&conversation_id=${conversationId}`)
-            .then(res => {
-                const reversed = [...res.data.data].reverse();
-                setMessages(reversed);
-                setInput('');
-            })
-            .catch(console.error);
-    }, [conversationId]);
+    const fetchMessages = async (convId: string) => {
+        const res = await fetch(`/api/proxy/messages?conversation_id=${convId}&user=${user}`);
+        const data = await res.json();
+        if (Array.isArray(data.data)) {
+            const history = data.data.reverse().map((msg: any) => {
+                return msg.query ? `👤 ${msg.query}` : msg.answer ? `😺 ${msg.answer}` : '';
+            }).filter(Boolean);
+            setMessages(history);
+        }
+    };
 
-    // 新しい会話を開始
-    const startNewConversation = () => {
-        setConversationId('');
-        setMessages([]);
+    const fetchConversations = async () => {
+        const res = await fetch(`/api/proxy/conversations?user=${user}`);
+        const data = await res.json();
+        setConversations(data.data || []);
+    };
+
+    const handleSend = async () => {
+        const res = await fetch('/api/proxy/chat-messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                inputs: {},
+                query: input,
+                response_mode: 'blocking',
+                user,
+                conversation_id: selectedConversationId || undefined,
+            }),
+        });
+        const data = await res.json();
+        setMessages((prev) => [...prev, `👤 ${input}`, `😺 ${data.answer || '[応答なし]'}`]);
+        if (data.conversation_id) {
+            setConversationId(data.conversation_id);
+            setSelectedConversationId(data.conversation_id);
+            fetchConversations();
+        }
         setInput('');
     };
 
-    // メッセージ送信処理
-    const sendMessage = async () => {
-        if (!input.trim()) return;
-        const payload = {
-            inputs: {},
-            query: input,
-            response_mode: 'blocking',
-            conversation_id: conversationId || undefined,
-            user: userId
-        };
+    useEffect(() => {
+        if (query) {
+            handleSend();
+        }
+    }, [query]);
 
-        const res = await axios.post('/api/proxy/chat-messages', payload);
-        const answer = res.data.answer;
-        const id = res.data.conversation_id;
+    useEffect(() => {
+        if (selectedConversationId) {
+            fetchMessages(selectedConversationId);
+        }
+    }, [selectedConversationId]);
 
-        setMessages(prev => [...prev, { query: input, answer }]);
-        if (!conversationId) setConversationId(id);
-        setInput('');
+    useEffect(() => {
+        if (user) {
+            fetchConversations();
+        }
+    }, [user]);
+
+    const handleSelectConversation = (e: any) => {
+        const selectedId = e.target.value;
+        if (selectedId === 'new') {
+            setMessages([]);
+            setSelectedConversationId('');
+            setConversationId('');
+        } else {
+            setSelectedConversationId(selectedId);
+        }
     };
 
     return (
-        <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-            <h1>Hello Sofia <span style={{ color: 'green' }}>✅</span></h1>
-            <p>👤 ユーザーID: {userId}</p>
-            <p>🧠 会話ID: {conversationId || '(新規)'}</p>
+        <div style={{ padding: 20 }}>
+            <h1>Hello Sofia ✅</h1>
+            <p>👤 ユーザーID: {user}</p>
+            <p>🎯 会話ID: {conversationId}</p>
+            <label>
+                会話履歴：
+                <select value={selectedConversationId || 'new'} onChange={handleSelectConversation}>
+                    <option value="new">🆕 新しい会話</option>
+                    {conversations.map((conv: any) => (
+                        <option key={conv.id} value={conv.id}>{conv.name || '無題の会話'}</option>
+                    ))}
+                </select>
+            </label>
 
-            <label>会話履歴：</label>
-            <select onChange={e => setConversationId(e.target.value)} value={conversationId}>
-                <option value="">🆕 新しい会話</option>
-                {conversations.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name || '(No title)'}</option>
-                ))}
-            </select>
-
-            <div style={{ background: '#f8f8f8', padding: '1rem', marginTop: '1rem' }}>
+            <div style={{ background: '#f2f2f2', margin: '20px 0', padding: 10 }}>
                 {messages.map((msg, idx) => (
-                    <p key={idx}>
-                        👤 {msg.query} <br />
-                        🤖 {msg.answer || '[応答なし]'}
-                    </p>
+                    <div key={idx}>{msg}</div>
                 ))}
             </div>
 
-            <div style={{ marginTop: '1rem' }}>
-                <input
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    placeholder="メッセージを入力"
-                />
-                <button onClick={sendMessage}>送信</button>
-            </div>
+            <input
+                placeholder="メッセージを入力"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                style={{ width: 300 }}
+            />
+            <button onClick={handleSend}>送信</button>
         </div>
     );
 }
