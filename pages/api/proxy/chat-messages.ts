@@ -1,5 +1,3 @@
-// pages/api/proxy/chat-messages.ts
-
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -9,11 +7,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const apiKey = process.env.DIFY_API_KEY;
     if (!apiKey) {
-        return res.status(400).json({ error: "Missing DIFY_API_KEY in env" });
+        return res.status(500).json({ error: "Missing Dify API key" });
     }
 
     try {
-        const response = await fetch("https://api.dify.ai/v1/chat-messages", {
+        const targetUrl = "https://api.dify.ai/v1/chat-messages";
+
+        const response = await fetch(targetUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -22,9 +22,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             body: JSON.stringify(req.body),
         });
 
+        if (!response.ok) {
+            return res.status(response.status).json({ error: await response.text() });
+        }
+
         const data = await response.json();
-        res.status(response.status).json(data);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message || "Internal Server Error" });
+        return res.status(200).json(data);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Unknown error" });
     }
 }
