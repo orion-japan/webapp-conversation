@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const apiKey = process.env.DIFY_API_KEY;
     if (!apiKey) {
-        return res.status(500).json({ error: 'Missing API Key in env' });
+        return res.status(500).json({ error: 'Missing API Key' });
     }
 
     const pathArray = req.query.path as string[] | undefined;
@@ -15,23 +15,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Missing path' });
     }
 
-    const targetPath = pathArray.join('/');
-    const targetUrl = `https://api.dify.ai/v1/${targetPath}`;
+    const targetUrl = `https://api.dify.ai/v1/${pathArray.join('/')}`;
 
     try {
         const apiRes = await fetch(targetUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': apiKey,
+                Authorization: apiKey,
             },
             body: JSON.stringify(req.body),
         });
 
         const data = await apiRes.json();
         res.status(apiRes.status).json(data);
-    } catch (error: any) {
-        console.error('❌ Proxy Error:', error);
-        res.status(500).json({ error: 'Internal proxy error', detail: error?.message });
+    } catch (err) {
+        res.status(500).json({ error: 'Proxy error', detail: (err as any)?.message });
     }
 }
