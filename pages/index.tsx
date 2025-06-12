@@ -1,3 +1,4 @@
+// pages/index.tsx
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -22,18 +23,35 @@ export default function Home() {
     }, [queryUser, queryText]);
 
     useEffect(() => {
-        if (conversationId) {
-            fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
+        if (user && user !== "unknown") {
+            fetch(`/api/proxy/conversations?user=${user}`)
                 .then((res) => res.json())
                 .then((data) => {
-                    const newMessages = data.data
-                        .slice()
-                        .reverse()
-                        .flatMap((msg: any) => [`🧑 ${msg.query}`, `😺 ${msg.answer || "[応答なし]"}`]);
-                    setMessages(newMessages);
+                    if (data?.data) {
+                        setHistory(data.data.map((c: any) => ({ id: c.id, name: c.name })));
+                    }
                 });
         }
-    }, [conversationId]);
+    }, [user]);
+
+    const fetchMessagesForConversation = async (conversationId: string) => {
+        const res = await fetch(
+            `/api/proxy/messages?user=${user}&conversation_id=${conversationId}`
+        );
+        const data = await res.json();
+
+        if (data?.data) {
+            const formatted = data.data
+                .reverse()
+                .flatMap((msg: any) => [
+                    `🧑 ${msg.query || "[質問なし]"}`,
+                    `😺 ${msg.answer || "[応答なし]"}`,
+                ]);
+            setMessages(formatted);
+        } else {
+            setMessages(["😺 [履歴が見つかりませんでした]"]);
+        }
+    };
 
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
@@ -62,11 +80,10 @@ export default function Home() {
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-
-            setHistory((prev) => {
-                if (prev.find((h) => h.id === data.conversation_id)) return prev;
-                return [...prev, { id: data.conversation_id, name: text.slice(0, 10) }];
-            });
+            setHistory((prev) => [
+                ...prev,
+                { id: data.conversation_id, name: text.slice(0, 10) },
+            ]);
         }
 
         setInput("");
@@ -78,13 +95,15 @@ export default function Home() {
             setMessages([]);
         } else {
             setConversationId(id);
-            setMessages([]);
+            fetchMessagesForConversation(id);
         }
     };
 
     return (
         <div style={{ padding: 20 }}>
-            <h1>Hello Sofia ✅</h1>
+            <h1>
+                Hello Sofia <span style={{ color: "green" }}>✅</span>
+            </h1>
 
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
@@ -114,6 +133,7 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 style={{ width: 300 }}
+                placeholder="メッセージを入力"
             />
             <button onClick={() => handleSend(input)}>送信</button>
         </div>
