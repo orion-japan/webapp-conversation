@@ -1,10 +1,11 @@
-// pages/api/proxy/[...path].ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const apiKey = process.env.DIFY_API_KEY;
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
 
+    const apiKey = process.env.DIFY_API_KEY;
     if (!apiKey) {
         return res.status(500).json({ error: 'Missing API Key in env' });
     }
@@ -18,31 +19,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const targetUrl = `https://api.dify.ai/v1/${targetPath}`;
 
     try {
-        const options: RequestInit = {
-            method: req.method,
+        const apiRes = await fetch(targetUrl, {
+            method: 'POST',
             headers: {
+                'Content-Type': 'application/json',
                 'Authorization': apiKey,
             },
-        };
+            body: JSON.stringify(req.body),
+        });
 
-        if (req.method === 'POST') {
-            options.headers = {
-                ...options.headers,
-                'Content-Type': 'application/json',
-            };
-            options.body = JSON.stringify(req.body);
-        }
-
-        const response = await fetch(targetUrl, options);
-        const data = await response.json();
-
-        res.status(response.status).json(data);
+        const data = await apiRes.json();
+        res.status(apiRes.status).json(data);
     } catch (error: any) {
         console.error('❌ Proxy Error:', error);
-        res.status(500).json({
-            name: 'ProxyError',
-            message: 'Internal proxy error',
-            detail: error?.message || 'Unknown error',
-        });
+        res.status(500).json({ error: 'Internal proxy error', detail: error?.message });
     }
 }

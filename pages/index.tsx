@@ -9,7 +9,6 @@ export default function Home() {
     const [messages, setMessages] = useState<string[]>([]);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [user, setUser] = useState<string>("unknown");
-    const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
         if (typeof queryUser === "string") {
@@ -26,9 +25,7 @@ export default function Home() {
 
         const res = await fetch("/api/proxy/chat-messages", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 inputs: {},
                 query: text,
@@ -48,50 +45,16 @@ export default function Home() {
 
         if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
-
-            // 会話履歴を更新
-            setHistory((prev) => [
-                ...prev,
-                { id: data.conversation_id, name: text.slice(0, 10) },
-            ]);
         }
 
         setInput("");
     };
 
-    const handleSelectConversation = (id: string) => {
-        if (id === "new") {
-            setConversationId(null);
-            setMessages([]);
-        } else {
-            setConversationId(id);
-            setMessages([]); // DifyのAPIから履歴を取得したい場合はここに追加処理も可
-        }
-    };
-
     return (
         <div style={{ padding: 20 }}>
-            <h1>
-                Hello Sofia ✅
-            </h1>
-
+            <h1>Hello Sofia ✅</h1>
             <p>👤 ユーザーID: {user}</p>
             <p>💬 会話ID: {conversationId || "(なし)"}</p>
-
-            <label>
-                会話履歴：
-                <select
-                    onChange={(e) => handleSelectConversation(e.target.value)}
-                    value={conversationId || "new"}
-                >
-                    <option value="new">🆕 新しい会話</option>
-                    {history.map((h) => (
-                        <option key={h.id} value={h.id}>
-                            {h.name}
-                        </option>
-                    ))}
-                </select>
-            </label>
 
             <div style={{ margin: "1em 0", padding: 10, background: "#f5f5f5" }}>
                 {messages.map((m, i) => (
