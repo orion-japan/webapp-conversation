@@ -1,3 +1,4 @@
+// pages/api/proxy/messages.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -5,10 +6,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: "Method Not Allowed" });
     }
 
-    const { user } = req.query;
+    const { user, conversation_id } = req.query;
 
-    if (!user || typeof user !== "string") {
-        return res.status(400).json({ error: "Missing user parameter" });
+    if (!user || !conversation_id || typeof user !== "string" || typeof conversation_id !== "string") {
+        return res.status(400).json({ error: "Missing parameters" });
     }
 
     const apiKey = process.env.DIFY_API_KEY;
@@ -16,18 +17,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: "Missing API Key" });
     }
 
-    const url = `https://api.dify.ai/v1/conversations?user=${user}`;
-
     try {
-        const response = await fetch(url, {
-            headers: {
-                Authorization: apiKey, // ✅ ここ修正
-            },
-        });
+        const response = await fetch(
+            `https://api.dify.ai/v1/messages?user=${user}&conversation_id=${conversation_id}`,
+            {
+                headers: {
+                    Authorization: apiKey,
+                },
+            }
+        );
 
         const data = await response.json();
-        res.status(response.status).json(data);
+        return res.status(response.status).json(data);
     } catch (err) {
-        res.status(500).json({ error: "Failed to fetch conversation history" });
+        return res.status(500).json({ error: "Failed to fetch messages" });
     }
 }
