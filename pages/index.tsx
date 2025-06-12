@@ -1,3 +1,6 @@
+// Sofia風 UI - React + TailwindCSS による全体設計
+// 前提：TailwindCSS が Vercel プロジェクトに適用済みであること
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -11,24 +14,19 @@ export default function Home() {
     const [user, setUser] = useState<string>("unknown");
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
 
-    // ✅ user セット（queryUser 確定後にのみ）
     useEffect(() => {
-        if (typeof queryUser === "string") {
-            setUser(queryUser);
-        }
+        if (typeof queryUser === "string") setUser(queryUser);
     }, [queryUser]);
 
-    // ✅ queryText がある場合にだけ送信（user設定後）
     useEffect(() => {
         if (user !== "unknown" && typeof queryText === "string" && queryText) {
             handleSend(queryText);
         }
     }, [user, queryText]);
 
-    // ✅ 会話履歴の取得（user確定後）
     useEffect(() => {
         if (user && user !== "unknown") {
-            fetch(`/api/proxy/conversations?user=${user}`)
+            fetch(`/api/proxy/conversations?user=${user}&limit=100`)
                 .then((res) => res.json())
                 .then((data) => {
                     if (data?.data?.length > 0) {
@@ -37,29 +35,20 @@ export default function Home() {
                             name: conv.name || conv.id.slice(0, 10),
                         }));
                         setHistory(formatted);
-
-                        // ✅ 最初の履歴を選択（新規開始でない場合）
-                        if (!conversationId) {
-                            setConversationId(formatted[0].id);
-                        }
+                        if (!conversationId) setConversationId(formatted[0].id);
                     }
                 });
         }
     }, [user]);
 
-    // ✅ 履歴の復元（Dify側反映遅延に備えて1秒後取得）
     useEffect(() => {
         if (conversationId) {
             setMessages(["📥 履歴を読み込み中..."]);
-
             const timeout = setTimeout(() => {
                 fetch(
                     `/api/proxy/messages?user=${user}&conversation_id=${conversationId}`
                 )
-                    .then((res) => {
-                        if (!res.ok) throw new Error("履歴取得失敗");
-                        return res.json();
-                    })
+                    .then((res) => res.json())
                     .then((data) => {
                         if (data?.data?.length > 0) {
                             const restored = data.data
@@ -74,23 +63,18 @@ export default function Home() {
                         }
                     })
                     .catch((err) => {
-                        setMessages([
-                            `🚫 履歴の取得中にエラーが発生しました：${err.message}`,
-                        ]);
+                        setMessages([`🚫 エラー：${err.message}`]);
                     });
             }, 1000);
-
             return () => clearTimeout(timeout);
         } else {
             setMessages([]);
         }
     }, [conversationId]);
 
-    // ✅ メッセージ送信（即入力クリア・conversation_id更新・履歴追記）
     const handleSend = async (text: string) => {
         if (!text.trim()) return;
-
-        setInput(""); // ✅ 入力即クリア
+        setInput("");
 
         const res = await fetch("/api/proxy/chat-messages", {
             method: "POST",
@@ -103,7 +87,6 @@ export default function Home() {
                 user: user,
             }),
         });
-
         const data = await res.json();
 
         setMessages((prev) => [
@@ -131,39 +114,54 @@ export default function Home() {
     };
 
     return (
-        <div style={{ padding: 20 }}>
-            <h1>Hello Sofia ✅</h1>
-            <p>👤 ユーザーID: {user}</p>
-            <p>💬 会話ID: {conversationId || "(なし)"}</p>
+        <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-white text-gray-800 px-6 py-8">
+            <div className="max-w-3xl mx-auto">
+                <h1 className="text-3xl font-bold text-center mb-6">Hello Sofia 🪷</h1>
 
-            <label>
-                会話履歴：
-                <select
-                    onChange={(e) => handleSelectConversation(e.target.value)}
-                    value={conversationId || "new"}
-                >
-                    <option value="new">🆕 新しい会話</option>
-                    {history.map((h) => (
-                        <option key={h.id} value={h.id}>
-                            {h.name}
-                        </option>
+                <div className="mb-4 text-sm text-center">
+                    <p>👤 ユーザーID: {user}</p>
+                    <p>💬 会話ID: <span className="text-blue-600">{conversationId || "(なし)"}</span></p>
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-sm font-semibold mb-1">会話履歴：</label>
+                    <select
+                        onChange={(e) => handleSelectConversation(e.target.value)}
+                        value={conversationId || "new"}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                        <option value="new">🆕 新しい会話</option>
+                        {history.map((h) => (
+                            <option key={h.id} value={h.id}>
+                                {h.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="space-y-2 mb-6 bg-white rounded-xl shadow px-4 py-4 min-h-[200px]">
+                    {messages.map((m, i) => (
+                        <p key={i} className={m.startsWith("🧑") ? "text-right text-blue-700" : "text-left text-purple-700"}>
+                            {m}
+                        </p>
                     ))}
-                </select>
-            </label>
+                </div>
 
-            <div style={{ margin: "1em 0", padding: 10, background: "#f5f5f5" }}>
-                {messages.map((m, i) => (
-                    <p key={i}>{m}</p>
-                ))}
+                <div className="flex gap-2">
+                    <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="メッセージを入力"
+                        className="flex-grow p-2 border border-gray-300 rounded-md"
+                    />
+                    <button
+                        onClick={() => handleSend(input)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                    >
+                        送信
+                    </button>
+                </div>
             </div>
-
-            <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                style={{ width: 300 }}
-                placeholder="メッセージを入力"
-            />
-            <button onClick={() => handleSend(input)}>送信</button>
         </div>
     );
 }
