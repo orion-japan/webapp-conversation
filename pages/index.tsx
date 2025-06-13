@@ -15,25 +15,20 @@ export default function Home() {
     const [messages, setMessages] = useState<Message[]>([])
     const [conversationId, setConversationId] = useState<string | null>(null)
     const [userId, setUserId] = useState<string>('unknown')
-    const userIdRef = useRef<string>('unknown')
     const [conversations, setConversations] = useState<any[]>([])
     const [selectedConversation, setSelectedConversation] = useState('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [pendingMessage, setPendingMessage] = useState<Message | null>(null)
     const [initialScroll, setInitialScroll] = useState(true)
-    const [fadeKey, setFadeKey] = useState(0)
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search)
         const uid = urlParams.get('user') || 'unknown'
         setUserId(uid)
-        userIdRef.current = uid
 
         const fetchConversations = async () => {
-            const res = await fetch(`/api/proxy/conversations?user=${uid}`, {
-                credentials: 'include'
-            })
+            const res = await fetch(`/api/proxy/conversations?user=${uid}`)
             const data = await res.json()
             setConversations(data.data || [])
         }
@@ -45,20 +40,18 @@ export default function Home() {
         setPendingMessage(null)
         setConversationId(selectedConversation)
         setInitialScroll(true)
-        setFadeKey(prev => prev + 1)
     }, [selectedConversation])
 
     useEffect(() => {
         if (!conversationId) return
-        const uid = userIdRef.current
         const fetchMessages = async () => {
-            console.log('🔍 conversationId:', conversationId)
-            console.log('🔍 userId (ref):', uid)
-            const res = await fetch(`/api/proxy/messages?user=${encodeURIComponent(uid)}&conversation_id=${encodeURIComponent(conversationId)}`, {
-                credentials: 'include'
-            })
+            const res = await fetch(`/api/proxy/messages?user=${userId}&conversation_id=${conversationId}`)
             const data = await res.json()
-            setMessages(data.messages || [])
+            setMessages((prev) => {
+                const existingIds = new Set(prev.map(m => m.id))
+                const merged = [...prev, ...(data.messages || []).filter(m => !existingIds.has(m.id))]
+                return merged
+            })
         }
         fetchMessages()
     }, [conversationId])
@@ -88,14 +81,13 @@ export default function Home() {
             query,
             response_mode: 'blocking',
             conversation_id: conversationId,
-            user: userIdRef.current
+            user: userId
         }
 
         const res = await fetch('/api/proxy/chat-messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-            credentials: 'include'
         })
 
         const data = await res.json()
@@ -125,10 +117,7 @@ export default function Home() {
     const handleDelete = async (id: string) => {
         const ok = confirm("この会話を削除しますか？")
         if (!ok) return
-        await fetch(`/api/proxy/conversations/${id}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        })
+        await fetch(`/api/proxy/conversations/${id}`, { method: 'DELETE' })
         setConversations((prev) => prev.filter((c) => c.id !== id))
         if (id === selectedConversation) {
             setSelectedConversation('')
@@ -143,8 +132,7 @@ export default function Home() {
         await fetch(`/api/proxy/conversations/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newName }),
-            credentials: 'include'
+            body: JSON.stringify({ name: newName })
         })
         setConversations((prev) =>
             prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
@@ -175,12 +163,12 @@ export default function Home() {
                 ))}
             </div>
 
-            <div key={fadeKey} className="flex-1 flex flex-col h-full items-center transition-opacity duration-500 opacity-100">
+            <div className="flex-1 flex flex-col h-full items-center">
                 <div className="flex-1 w-full max-w-3xl overflow-y-auto p-6 space-y-4">
                     {messages.map((msg) => (
                         <div key={msg.id} className={msg.role === 'user' ? 'w-full flex justify-end' : 'w-full flex justify-start'}>
                             <div className={msg.role === 'user' ? 'max-w-xl p-4 rounded-xl shadow-md bg-white whitespace-pre-line leading-relaxed' : 'max-w-xl p-4 rounded-xl shadow-md bg-indigo-100 whitespace-pre-line leading-relaxed'}>
-                                {msg.content || '(No answer)'}
+                                {msg.content || msg.answer || '(No answer)'}
                             </div>
                         </div>
                     ))}

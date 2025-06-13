@@ -1,3 +1,4 @@
+// pages/api/proxy/messages.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -7,29 +8,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { user, conversation_id } = req.query
     const apiKey = process.env.DIFY_API_KEY
-    const apiBaseUrl = process.env.DIFY_API_BASE_URL || 'https://api.dify.ai/v1'
 
-    if (!apiKey) {
-        return res.status(500).json({ error: 'Missing API key' })
+    if (!apiKey || typeof apiKey !== 'string') {
+        return res.status(500).json({ error: 'Missing API key in environment' })
     }
 
+    const targetUrl = `https://api.dify.ai/v1/messages?user=${user}&conversation_id=${conversation_id}`
+
     try {
-        const url = `${apiBaseUrl}/messages?user=${user}&conversation_id=${conversation_id}`
-        const response = await fetch(url, {
+        const response = await fetch(targetUrl, {
+            method: 'GET',
             headers: {
+                Authorization: `${apiKey}`, // Bearerなし
                 'Content-Type': 'application/json',
-                'Authorization': `${apiKey}` // ✅ Bearer を付加しない
-            }
+            },
         })
 
         const data = await response.json()
+        console.log('📥 raw API response:', data)
 
-        if (!response.ok) {
-            return res.status(response.status).json({ error: data })
-        }
-
-        return res.status(200).json(data)
-    } catch (error: any) {
-        return res.status(500).json({ error: error.message })
+        // 👇 必要な構造に加工して返す
+        res.status(200).json({ messages: data.data || [] })
+    } catch (error) {
+        console.error('❌ Error fetching messages:', error)
+        res.status(500).json({ error: 'Failed to fetch messages' })
     }
 }

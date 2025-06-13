@@ -1,26 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+// middleware.ts
+
+import { NextRequest, NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
-    const uid = request.nextUrl.searchParams.get('uid');
+    const response = NextResponse.next()
 
-    if (uid) {
-        const redirectUrl = new URL(request.url);
-        redirectUrl.searchParams.delete('uid');
-
-        const response = NextResponse.redirect(redirectUrl);
-
-        response.cookies.set('dify_user_id', uid, {
+    // ✅ user クエリパラメータがあれば、Cookie に保存
+    const user = request.nextUrl.searchParams.get('user')
+    if (user) {
+        response.cookies.set('user', user, {
             path: '/',
-            httpOnly: false,
-            sameSite: 'lax',
-        });
-
-        return response;
+            maxAge: 60 * 60 * 24 * 30, // 30日
+        })
     }
 
-    return NextResponse.next();
+    return response
 }
 
+// ✅ 適用するパス
 export const config = {
-    matcher: ['/', '/chat', '/(.*)'],
-};
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+}

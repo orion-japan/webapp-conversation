@@ -168,7 +168,7 @@ export default function Home() {
                     {messages.map((msg) => (
                         <div key={msg.id} className={msg.role === 'user' ? 'w-full flex justify-end' : 'w-full flex justify-start'}>
                             <div className={msg.role === 'user' ? 'max-w-xl p-4 rounded-xl shadow-md bg-white whitespace-pre-line leading-relaxed' : 'max-w-xl p-4 rounded-xl shadow-md bg-indigo-100 whitespace-pre-line leading-relaxed'}>
-                                {msg.content || '(No answer)'}
+                                {msg.content || msg.answer || '(No answer)'}
                             </div>
                         </div>
                     ))}
@@ -191,3 +191,4 @@ export default function Home() {
         </div>
     )
 }
+

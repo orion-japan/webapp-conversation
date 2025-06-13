@@ -1,47 +1,31 @@
-// conversations.ts（APIキー認証版）
+// /pages/api/proxy/conversations.ts
 
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method Not Allowed' })
+    }
+
     const apiKey = process.env.DIFY_API_KEY
     if (!apiKey) {
-        return res.status(400).json({ error: 'Missing API key in env' })
+        return res.status(500).json({ error: 'Missing API key' })
     }
 
     const { user } = req.query
-
-    const baseUrl = 'https://api.dify.ai/v1/conversations'
-    let url = baseUrl
-    let method = 'GET'
-    let body = undefined
-
-    switch (req.method) {
-        case 'GET':
-            url += `?user=${user}`
-            break
-        case 'DELETE':
-        case 'PATCH':
-            if (!req.url) return res.status(400).json({ error: 'Invalid URL' })
-            const id = req.url.split('/').pop()
-            url += `/${id}`
-            method = req.method
-            if (req.method === 'PATCH') {
-                body = JSON.stringify(req.body)
-            }
-            break
-        default:
-            return res.status(405).json({ error: 'Method Not Allowed' })
-    }
+    const url = `https://api.dify.ai/v1/conversations?user=${user}`
 
     const response = await fetch(url, {
-        method,
         headers: {
-            'Authorization': apiKey,
-            'Content-Type': 'application/json'
-        },
-        body
+            'Authorization': `${apiKey}`  // ✅ Bearer なし
+        }
     })
 
     const data = await response.json()
-    res.status(response.status).json(data)
+    if (!response.ok) {
+        console.error('❌ Error fetching conversations:', data)
+        return res.status(response.status).json(data)
+    }
+
+    res.status(200).json(data)
 }
