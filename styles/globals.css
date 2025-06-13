@@ -4,38 +4,52 @@
 
 @layer base {
     body {
-        @apply bg-gradient-to-b from-white to-indigo-50 text-gray-800 min-h-screen;
+        @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-100 text-gray-800 min-h-screen antialiased;
         font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    h1,
+    h2,
+    h3 {
+        @apply text-indigo-800 font-semibold;
+    }
+
+    select,
+    input,
+    textarea {
+        @apply rounded-md border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 px-4 py-2 bg-white text-sm shadow-sm;
+    }
+
+    button {
+        @apply bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-all;
     }
 }
 
 @layer components {
-    .sofia-message {
-        @apply text-purple-700 bg-white p-3 rounded-xl my-2 shadow-md whitespace-pre-wrap leading-relaxed;
-        background-image: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    .message-box {
+        @apply max-w-xl w-full mx-auto bg-white/80 rounded-xl p-4 shadow-md backdrop-blur-md;
     }
 
-    .user-message {
-        @apply text-right text-indigo-900 bg-indigo-100 p-3 rounded-xl my-2 whitespace-pre-wrap leading-relaxed;
+    .user-label {
+        @apply text-xs text-indigo-400 tracking-wider uppercase mb-1;
     }
 
-    .message-container {
-        @apply flex flex-col gap-2 overflow-y-auto px-4 py-4;
+    .scroll-area {
+        @apply overflow-y-auto max-h-[60vh] pr-2;
     }
 
-    .chat-input {
-        @apply w-full p-3 text-base border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400;
+    .input-area {
+        @apply mt-4 flex items-center gap-2 px-2 w-full max-w-xl;
     }
 
     .send-button {
-        @apply p-2 rounded-md bg-indigo-600 hover:bg-indigo-700 transition text-white shadow;
+        @apply bg-indigo-500 hover:bg-indigo-600 text-white rounded-full p-3 shadow-lg transition;
     }
+}
 
-    .scroll-indicator {
-        @apply text-center text-gray-500 text-xs mt-2;
-    }
-
-    .star-marker::before {
-        content: '⭐ ';
+@layer utilities {
+    .gradient-border {
+        border-width: 2px;
+        border-image: linear-gradient(to right, #a78bfa, #7dd3fc) 1;
     }
 }
