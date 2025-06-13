@@ -3,6 +3,7 @@ module.exports = {
   content: [
     './app/**/*.{js,ts,jsx,tsx}',
     './components/**/*.{js,ts,jsx,tsx}',
+    './pages/**/*.{js,ts,jsx,tsx}', // ✅ 追加：pagesディレクトリのTailwind有効化
   ],
   theme: {
     typography: require('./typography'),
@@ -34,7 +35,6 @@ module.exports = {
           50: '#F3FAF7',
           100: '#DEF7EC',
           800: '#03543F',
-
         },
         yellow: {
           100: '#FDF6B2',
@@ -51,11 +51,8 @@ module.exports = {
       },
       screens: {
         mobile: '100px',
-        // => @media (min-width: 100px) { ... }
-        tablet: '640px', // 391
-        // => @media (min-width: 600px) { ... }
+        tablet: '640px',
         pc: '769px',
-        // => @media (min-width: 769px) { ... }
       },
     },
   },
@@ -63,4 +60,4 @@ module.exports = {
     require('@tailwindcss/typography'),
     require('@tailwindcss/line-clamp'),
   ],
-}
+};

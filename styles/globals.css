@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === Sofia UI カスタムスタイル === */
+
+body {
+    @apply bg-indigo-25 text-gray-800 leading-relaxed antialiased;
+    font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+    @apply text-indigo-600 font-semibold;
+}
+
+input,
+textarea,
+select {
+    @apply border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring focus:ring-indigo-200;
+}
+
+button {
+    @apply bg-indigo-600 text-white rounded-2xl px-6 py-2 hover:bg-indigo-700 transition;
+}
+
+select {
+    @apply bg-white;
+}
+
+.chat-box {
+    @apply bg-white border border-indigo-100 rounded-2xl p-4 shadow-md my-4;
+}
+
+.message-user {
+    @apply text-right text-blue-600;
+}
+
+.message-sofia {
+    @apply text-left text-indigo-800 italic;
+}
+
+label {
+    @apply text-sm font-semibold text-gray-600;
+}
