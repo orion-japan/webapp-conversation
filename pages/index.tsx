@@ -1,7 +1,8 @@
-// Sofia風 UI - React + TailwindCSS with 会話ID維持修正
+// Sofia UI with Icon Header + Message Cache
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
 
 export default function Home() {
     const router = useRouter();
@@ -12,7 +13,8 @@ export default function Home() {
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [user, setUser] = useState<string>("unknown");
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
-    const [sending, setSending] = useState(false); // 🚩 送信中状態
+    const [sending, setSending] = useState(false);
+    const [cache, setCache] = useState<{ [id: string]: string[] }>({});
 
     useEffect(() => {
         if (typeof queryUser === "string") setUser(queryUser);
@@ -43,11 +45,10 @@ export default function Home() {
 
     useEffect(() => {
         if (conversationId) {
-            setMessages(["📥 履歴を読み込み中..."]);
-            const timeout = setTimeout(() => {
-                fetch(
-                    `/api/proxy/messages?user=${user}&conversation_id=${conversationId}`
-                )
+            if (cache[conversationId]) {
+                setMessages(cache[conversationId]);
+            } else {
+                fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
                     .then((res) => res.json())
                     .then((data) => {
                         if (data?.data?.length > 0) {
@@ -57,6 +58,7 @@ export default function Home() {
                                     `😺 ${msg.answer || "[応答なし]"}`,
                                 ])
                                 .flat();
+                            setCache((prev) => ({ ...prev, [conversationId]: restored }));
                             setMessages(restored);
                         } else {
                             setMessages(["😺 [履歴が見つかりませんでした]"]);
@@ -65,8 +67,7 @@ export default function Home() {
                     .catch((err) => {
                         setMessages([`🚫 エラー：${err.message}`]);
                     });
-            }, 1000);
-            return () => clearTimeout(timeout);
+            }
         } else {
             setMessages([]);
         }
@@ -74,7 +75,6 @@ export default function Home() {
 
     const handleSend = async (text: string) => {
         if (!text.trim() || sending) return;
-
         setSending(true);
         setInput("");
 
@@ -91,13 +91,13 @@ export default function Home() {
         });
         const data = await res.json();
 
-        setMessages((prev) => [
-            ...prev,
+        const newMessages = [
+            ...messages,
             `🧑 ${text}`,
             `😺 ${data.answer || "[応答なし]"}`,
-        ]);
+        ];
+        setMessages(newMessages);
 
-        // ✅ 初回のみIDを更新
         if (!conversationId && data.conversation_id) {
             setConversationId(data.conversation_id);
             setHistory((prev) => [
@@ -105,6 +105,8 @@ export default function Home() {
                 ...prev,
             ]);
         }
+        const id = data.conversation_id || conversationId;
+        if (id) setCache((prev) => ({ ...prev, [id]: newMessages }));
 
         setSending(false);
     };
@@ -121,7 +123,10 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-white text-gray-800 px-6 py-8">
             <div className="max-w-3xl mx-auto">
-                <h1 className="text-3xl font-bold text-center mb-6">Hello Sofia 🪷</h1>
+                <div className="flex items-center justify-center gap-4 mb-6">
+                    <Image src="/Sofia.png" alt="Sofia Icon" width={48} height={48} className="rounded-full" />
+                    <h1 className="text-3xl font-bold">Hello Sofia 🪷</h1>
+                </div>
 
                 <div className="mb-4 text-sm text-center">
                     <p>👤 ユーザーID: {user}</p>
