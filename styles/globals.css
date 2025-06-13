@@ -2,27 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-    @apply bg-gradient-to-br from-indigo-50 to-white text-gray-800;
-    font-family: 'Noto Sans JP', sans-serif;
+@layer base {
+    body {
+        @apply bg-gradient-to-b from-white to-indigo-50 text-gray-800 min-h-screen;
+        font-family: 'Noto Sans JP', sans-serif;
+    }
 }
 
-select,
-input,
-button {
-    @apply focus:outline-none focus:ring-2 focus:ring-indigo-400 transition;
-}
+@layer components {
+    .sofia-message {
+        @apply text-purple-700 bg-white p-3 rounded-xl my-2 shadow-md whitespace-pre-wrap leading-relaxed;
+        background-image: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    }
 
-textarea,
-input[type="text"] {
-    @apply px-4 py-2 border border-gray-300 rounded shadow;
-}
+    .user-message {
+        @apply text-right text-indigo-900 bg-indigo-100 p-3 rounded-xl my-2 whitespace-pre-wrap leading-relaxed;
+    }
 
-p {
-    @apply text-violet-700 leading-relaxed;
-    white-space: pre-wrap;
-}
+    .message-container {
+        @apply flex flex-col gap-2 overflow-y-auto px-4 py-4;
+    }
 
-h1 {
-    @apply text-2xl font-bold text-indigo-700;
+    .chat-input {
+        @apply w-full p-3 text-base border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400;
+    }
+
+    .send-button {
+        @apply p-2 rounded-md bg-indigo-600 hover:bg-indigo-700 transition text-white shadow;
+    }
+
+    .scroll-indicator {
+        @apply text-center text-gray-500 text-xs mt-2;
+    }
+
+    .star-marker::before {
+        content: '⭐ ';
+    }
 }
