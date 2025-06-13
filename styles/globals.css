@@ -1,65 +1,63 @@
-body {
-    @apply bg-gradient-to-b from-blue-50 to-purple-100 text-gray-800;
-}
-
-h1 {
-    @apply text-3xl font-bold text-center text-indigo-600 my-4;
-}
-
-select,
-input {
-    @apply border rounded px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400;
-}
-
-button {
-    @apply rounded px-4 py-2 text-sm font-semibold shadow;
-}
-
-button:hover {
-    @apply opacity-90;
-}
-
-input::placeholder {
-    color: #9ca3af;
-}
-
-/* 会話メッセージ用 */
-.message-container {
-    @apply w-full max-w-2xl h-[500px] overflow-y-auto bg-white rounded-2xl p-4 shadow-inner;
-}
-
-.message-user {
-    @apply text-right text-sm text-gray-700 whitespace-pre-wrap my-2;
-}
-
-.message-assistant {
-    @apply text-left text-sm text-purple-700 whitespace-pre-wrap my-2;
-}
-
-/* 入力バー */
-.input-bar {
-    @apply flex w-full max-w-2xl gap-2;
-}
-
-input[type="text"] {
-    @apply flex-1 border rounded-xl px-4 py-2;
-}
-
-/* アイコンの表現（必要に応じて） */
-.icon-sparkle {
-    @apply text-yellow-400 text-xl animate-pulse;
-}
-
-/* スクロールバーカスタム（ブラウザ依存） */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-    background-color: #a78bfa;
-    border-radius: 3px;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 🌌 背景グラデーション（天界〜静かな宇宙） */
+body {
+    font-family: 'YuMincho', 'Hiragino Mincho Pro', serif;
+    background: linear-gradient(to bottom, #eef3ff, #f8f5ff);
+    color: #2d2d2d;
+    line-height: 1.75;
+    letter-spacing: 0.02em;
+    scroll-behavior: smooth;
+}
+
+/* 🌀 スクロールバー美化 */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(138, 102, 255, 0.5);
+    /* 淡い紫 */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* 🪔 メッセージ浮かせエフェクト */
+.shadow-inner {
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-message {
+    box-shadow: 0 4px 12px rgba(90, 60, 180, 0.08);
+    transition: all 0.3s ease;
+}
+
+/* 🪷 メッセージバブルの優しい曲線 */
+.rounded-xl {
+    border-radius: 1.2rem;
+}
+
+/* ✨ 入力欄エフェクト */
+input::placeholder {
+    color: #888;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+/* 🌸 Sofiaアイデンティティの紫 */
+.bg-sofia {
+    background-color: #c5b4ff;
+}
+
+.text-sofia {
+    color: #7861d1;
+}
+
+.border-sofia {
+    border-color: #a78bfa;
+}

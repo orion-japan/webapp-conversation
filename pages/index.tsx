@@ -1,53 +1,195 @@
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
+
+interface Message {
+    id: string
+    role: string
+    answer: string
+    question?: string
+    content?: string
+}
 
 export default function Home() {
-    const [input, setInput] = useState("");
-    const [messages, setMessages] = useState<string[]>([]);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    const handleSend = () => {
-        if (!input.trim()) return;
-        setMessages((prev) => [...prev, input]);
-        setInput("");
-    };
+    const [input, setInput] = useState('')
+    const [messages, setMessages] = useState<Message[]>([])
+    const [conversationId, setConversationId] = useState<string | null>(null)
+    const [userId, setUserId] = useState<string>('unknown')
+    const [conversations, setConversations] = useState<any[]>([])
+    const [selectedConversation, setSelectedConversation] = useState('')
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [pendingMessage, setPendingMessage] = useState<Message | null>(null)
+    const [initialScroll, setInitialScroll] = useState(true)
 
     useEffect(() => {
-        if (containerRef.current) {
-            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        const urlParams = new URLSearchParams(window.location.search)
+        const uid = urlParams.get('user') || 'unknown'
+        setUserId(uid)
+
+        const fetchConversations = async () => {
+            const res = await fetch(`/api/proxy/conversations?user=${uid}`)
+            const data = await res.json()
+            setConversations(data.data || [])
         }
-    }, [messages]);
+
+        fetchConversations()
+    }, [])
+
+    useEffect(() => {
+        if (!selectedConversation) return
+        setPendingMessage(null)
+        setConversationId(selectedConversation)
+        setInitialScroll(true)
+    }, [selectedConversation])
+
+    useEffect(() => {
+        if (!conversationId) return
+        const fetchMessages = async () => {
+            const res = await fetch(`/api/proxy/messages?user=${userId}&conversation_id=${conversationId}`)
+            const data = await res.json()
+            let loadedMessages = data.data || []
+
+            setMessages(pendingMessage ? [...loadedMessages, pendingMessage] : loadedMessages)
+            setPendingMessage(null)
+        }
+        fetchMessages()
+    }, [conversationId])
+
+    useEffect(() => {
+        if (initialScroll) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+            setInitialScroll(false)
+        } else {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [messages])
+
+    const handleSend = async (query: string) => {
+        if (!query) return
+        const newMessage: Message = {
+            id: uuidv4(),
+            role: 'user',
+            answer: query,
+            question: query,
+            content: query
+        }
+        setMessages((prev) => [...prev, newMessage])
+        setPendingMessage(newMessage)
+        setInput('')
+
+        const payload = {
+            inputs: {},
+            query,
+            response_mode: 'blocking',
+            conversation_id: conversationId,
+            user: userId
+        }
+
+        const res = await fetch('/api/proxy/chat-messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+
+        const data = await res.json()
+        if (data.conversation_id) {
+            setConversationId(data.conversation_id)
+            setSelectedConversation(data.conversation_id)
+        }
+
+        const aiMessage: Message = {
+            id: uuidv4(),
+            role: 'assistant',
+            answer: data.answer || '(No answer)'
+        }
+        setMessages((prev) => [...prev, aiMessage])
+    }
+
+    const handleNewConversation = () => {
+        setMessages([])
+        setConversationId(null)
+        setSelectedConversation('')
+    }
+
+    const handleDelete = async (id: string) => {
+        const ok = confirm("この会話を削除しますか？")
+        if (!ok) return
+        await fetch(`/api/proxy/conversations/${id}`, { method: 'DELETE' })
+        setConversations((prev) => prev.filter((c) => c.id !== id))
+        if (id === selectedConversation) {
+            setSelectedConversation('')
+            setConversationId(null)
+            setMessages([])
+        }
+    }
+
+    const handleRename = async (id: string) => {
+        const newName = prompt("新しい会話名を入力してください")
+        if (!newName) return
+        await fetch(`/api/proxy/conversations/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName })
+        })
+        setConversations((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
+        )
+    }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white via-sky-50 to-indigo-100 px-2 py-6 text-center text-gray-800">
-            <h1 className="text-3xl font-bold mb-4 text-indigo-600">🌟 Hello Sofia ✨</h1>
-            <div className="mb-3 text-sm text-gray-500">ユーザーID: 669933</div>
-            <div
-                ref={containerRef}
-                className="max-w-xl mx-auto h-[60vh] overflow-y-auto bg-white shadow-md rounded-xl p-4 space-y-3 border border-indigo-100"
-            >
-                {messages.map((msg, i) => (
-                    <div key={i} className="text-left text-violet-700 whitespace-pre-wrap leading-relaxed">
-                        <span className="font-bold mr-2">🧑 User:</span>
-                        {msg}
+        <div className="flex h-screen w-full overflow-hidden font-serif bg-gradient-to-b from-indigo-50 to-purple-50">
+            <button className="absolute top-2 left-2 z-10 lg:hidden bg-white/70 px-3 py-1 rounded" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                ☰
+            </button>
+
+            <div className={`fixed lg:static top-0 left-0 h-full w-64 bg-white/80 shadow-lg p-4 overflow-y-auto transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+                <button onClick={handleNewConversation} className="mb-4 w-full bg-indigo-500 text-white py-2 rounded">＋ 新しい会話</button>
+                {conversations.map((conv) => (
+                    <div key={conv.id} className="group flex items-center justify-between px-2 py-1 rounded hover:bg-indigo-100">
+                        <span
+                            onClick={() => setSelectedConversation(conv.id)}
+                            className={conv.id === selectedConversation ? 'flex-1 cursor-pointer truncate bg-indigo-200' : 'flex-1 cursor-pointer truncate'}
+                        >
+                            {conv.name || conv.id.slice(0, 10)}
+                        </span>
+                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleRename(conv.id)} className="text-sm hover:text-indigo-700">✏️</button>
+                            <button onClick={() => handleDelete(conv.id)} className="text-sm hover:text-red-500">🗑</button>
+                        </div>
                     </div>
                 ))}
             </div>
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-xl mx-auto">
-                <input
-                    type="text"
-                    placeholder="メッセージを入力"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    className="w-full sm:flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow"
-                />
-                <button
-                    onClick={handleSend}
-                    className="flex items-center justify-center px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg shadow"
-                >
-                    <Image src="/Sofia_logo.png" alt="Send" width={24} height={24} />
-                </button>
+
+            <div className="flex-1 flex flex-col h-full items-center">
+                <div className="flex-1 w-full max-w-3xl overflow-y-auto p-6 space-y-4">
+                    {messages.map((msg) => (
+                        <div key={msg.id} className={msg.role === 'user' ? 'w-full flex justify-end' : 'w-full flex justify-start'}>
+                            <div className={msg.role === 'user' ? 'max-w-xl p-4 rounded-xl shadow-md bg-white whitespace-pre-line leading-relaxed' : 'max-w-xl p-4 rounded-xl shadow-md bg-indigo-100 whitespace-pre-line leading-relaxed'}>
+                                {msg.role === 'user'
+                                    ? (msg.content || msg.question || msg.answer || '(無言)')
+                                    : (msg.answer || msg.content || '(No answer)')}
+                            </div>
+                        </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                </div>
+
+                <div className="w-full max-w-3xl p-4 border-t bg-white/70 backdrop-blur flex">
+                    <textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend(input)}
+                        className="flex-1 border rounded px-4 py-4 text-lg shadow-inner bg-white/90 resize-none h-28"
+                        placeholder="あなたの内なる響きを言葉にしてください..."
+                    />
+                    <button onClick={() => handleSend(input)} className="ml-2 px-6 py-4 bg-indigo-500 text-white rounded shadow text-lg">
+                        響かせる
+                    </button>
+                </div>
             </div>
         </div>
-    );
+    )
 }
