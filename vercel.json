@@ -8,6 +8,5 @@
             "source": "/sofia/(.*)",
             "destination": "/$1"
         }
-    ],
-    "project": "webapp-conversation-83ys"
+    ]
 }
