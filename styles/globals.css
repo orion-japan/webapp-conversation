@@ -1,55 +1,65 @@
+body {
+    @apply bg-gradient-to-b from-blue-50 to-purple-100 text-gray-800;
+}
+
+h1 {
+    @apply text-3xl font-bold text-center text-indigo-600 my-4;
+}
+
+select,
+input {
+    @apply border rounded px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400;
+}
+
+button {
+    @apply rounded px-4 py-2 text-sm font-semibold shadow;
+}
+
+button:hover {
+    @apply opacity-90;
+}
+
+input::placeholder {
+    color: #9ca3af;
+}
+
+/* 会話メッセージ用 */
+.message-container {
+    @apply w-full max-w-2xl h-[500px] overflow-y-auto bg-white rounded-2xl p-4 shadow-inner;
+}
+
+.message-user {
+    @apply text-right text-sm text-gray-700 whitespace-pre-wrap my-2;
+}
+
+.message-assistant {
+    @apply text-left text-sm text-purple-700 whitespace-pre-wrap my-2;
+}
+
+/* 入力バー */
+.input-bar {
+    @apply flex w-full max-w-2xl gap-2;
+}
+
+input[type="text"] {
+    @apply flex-1 border rounded-xl px-4 py-2;
+}
+
+/* アイコンの表現（必要に応じて） */
+.icon-sparkle {
+    @apply text-yellow-400 text-xl animate-pulse;
+}
+
+/* スクロールバーカスタム（ブラウザ依存） */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #a78bfa;
+    border-radius: 3px;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@layer base {
-    body {
-        @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-100 text-gray-800 min-h-screen antialiased;
-        font-family: 'Noto Sans JP', sans-serif;
-    }
-
-    h1,
-    h2,
-    h3 {
-        @apply text-indigo-800 font-semibold;
-    }
-
-    select,
-    input,
-    textarea {
-        @apply rounded-md border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 px-4 py-2 bg-white text-sm shadow-sm;
-    }
-
-    button {
-        @apply bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-all;
-    }
-}
-
-@layer components {
-    .message-box {
-        @apply max-w-xl w-full mx-auto bg-white/80 rounded-xl p-4 shadow-md backdrop-blur-md;
-    }
-
-    .user-label {
-        @apply text-xs text-indigo-400 tracking-wider uppercase mb-1;
-    }
-
-    .scroll-area {
-        @apply overflow-y-auto max-h-[60vh] pr-2;
-    }
-
-    .input-area {
-        @apply mt-4 flex items-center gap-2 px-2 w-full max-w-xl;
-    }
-
-    .send-button {
-        @apply bg-indigo-500 hover:bg-indigo-600 text-white rounded-full p-3 shadow-lg transition;
-    }
-}
-
-@layer utilities {
-    .gradient-border {
-        border-width: 2px;
-        border-image: linear-gradient(to right, #a78bfa, #7dd3fc) 1;
-    }
-}
