@@ -1,5 +1,4 @@
-// v2 Sofia UI with Icon, Avatar, Styling Enhancements
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 
@@ -12,70 +11,55 @@ export default function Home() {
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [user, setUser] = useState<string>("unknown");
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
-    const [sending, setSending] = useState(false);
-    const [cache, setCache] = useState<{ [id: string]: string[] }>({});
-    const userImageUrl = "/userAvatar.png"; // static avatar
+    const messageRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (typeof queryUser === "string") setUser(queryUser);
-    }, [queryUser]);
+        if (typeof queryText === "string" && queryText) handleSend(queryText);
+    }, [queryUser, queryText]);
 
     useEffect(() => {
-        if (user !== "unknown" && typeof queryText === "string" && queryText) {
-            handleSend(queryText);
-        }
-    }, [user, queryText]);
-
-    useEffect(() => {
-        if (user && user !== "unknown") {
-            fetch(`/api/proxy/conversations?user=${user}&limit=100`)
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data?.data?.length > 0) {
-                        const formatted = data.data.map((conv: any) => ({
+        if (!user || user === "unknown") return;
+        fetch(`/api/proxy/conversations?user=${user}`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data?.data) {
+                    setHistory(
+                        data.data.map((conv: any) => ({
                             id: conv.id,
                             name: conv.name || conv.id.slice(0, 10),
-                        }));
-                        setHistory(formatted);
-                        if (!conversationId) setConversationId(formatted[0].id);
-                    }
-                });
-        }
+                        }))
+                    );
+                }
+            });
     }, [user]);
 
     useEffect(() => {
-        if (conversationId) {
-            if (cache[conversationId]) {
-                setMessages(cache[conversationId]);
-            } else {
-                fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
-                    .then((res) => res.json())
-                    .then((data) => {
-                        if (data?.data?.length > 0) {
-                            const restored = data.data
-                                .map((msg: any) => [
-                                    `🧑 ${msg.query}`,
-                                    `😺 ${msg.answer || "[応答なし]"}`,
-                                ])
-                                .flat();
-                            setCache((prev) => ({ ...prev, [conversationId]: restored }));
-                            setMessages(restored);
-                        } else {
-                            setMessages(["😺 [履歴が見つかりませんでした]"]);
-                        }
-                    })
-                    .catch((err) => {
-                        setMessages([`🚫 エラー：${err.message}`]);
-                    });
-            }
-        } else {
-            setMessages([]);
-        }
+        if (!conversationId) return;
+        fetch(`/api/proxy/messages?user=${user}&conversation_id=${conversationId}`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data?.data) {
+                    const restored = data.data
+                        .map((msg: any) => [
+                            `🧑 ${msg.query}`,
+                            `😺 ${msg.answer || "[応答なし]"}`,
+                        ])
+                        .flat();
+                    setMessages(restored);
+                } else {
+                    setMessages(["😺 [履歴が見つかりませんでした]"]);
+                }
+            });
     }, [conversationId]);
 
+    useEffect(() => {
+        const container = messageRef.current;
+        if (container) container.scrollTop = container.scrollHeight;
+    }, [messages]);
+
     const handleSend = async (text: string) => {
-        if (!text.trim() || sending) return;
-        setSending(true);
+        if (!text.trim()) return;
         setInput("");
 
         const res = await fetch("/api/proxy/chat-messages", {
@@ -89,26 +73,21 @@ export default function Home() {
                 user: user,
             }),
         });
-        const data = await res.json();
 
-        const newMessages = [
-            ...messages,
+        const data = await res.json();
+        setMessages((prev) => [
+            ...prev,
             `🧑 ${text}`,
             `😺 ${data.answer || "[応答なし]"}`,
-        ];
-        setMessages(newMessages);
+        ]);
 
-        if (!conversationId && data.conversation_id) {
+        if (data.conversation_id && data.conversation_id !== conversationId) {
             setConversationId(data.conversation_id);
             setHistory((prev) => [
                 { id: data.conversation_id, name: text.slice(0, 10) },
                 ...prev,
             ]);
         }
-        const id = data.conversation_id || conversationId;
-        if (id) setCache((prev) => ({ ...prev, [id]: newMessages }));
-
-        setSending(false);
     };
 
     const handleSelectConversation = (id: string) => {
@@ -120,25 +99,47 @@ export default function Home() {
         }
     };
 
+    const handleDeleteConversation = async (id: string) => {
+        await fetch(`/api/proxy/conversations/${id}`, { method: "DELETE" });
+        setHistory((prev) => prev.filter((conv) => conv.id !== id));
+        if (conversationId === id) {
+            setConversationId(null);
+            setMessages([]);
+        }
+    };
+
+    const handleRenameConversation = async (id: string) => {
+        const newName = prompt("新しい会話名を入力してください：");
+        if (!newName) return;
+        await fetch(`/api/proxy/conversations/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: newName }),
+        });
+        setHistory((prev) =>
+            prev.map((conv) => (conv.id === id ? { ...conv, name: newName } : conv))
+        );
+    };
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white text-gray-800 px-6 py-8">
-            <div className="max-w-3xl mx-auto">
-                <div className="flex items-center justify-center gap-4 mb-6">
-                    <Image src="/Sofia_logo.png" alt="Sofia Logo" width={42} height={42} className="rounded-full" />
-                    <h1 className="text-3xl font-bold tracking-wide">Hello Sofia 🪷</h1>
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white p-8 text-center">
+            <div className="mb-4 flex items-center justify-center gap-2">
+                <Image src="/Sofia_logo.png" alt="Sofia" width={32} height={32} />
+                <h1 className="text-2xl font-bold text-indigo-700">Hello Sofia 🪷</h1>
+            </div>
+            <p className="text-sm text-gray-500">
+                👤 ユーザーID: <span className="font-mono">{user}</span>
+                <br />
+                💬 会話ID: <span className="font-mono">{conversationId || "(なし)"}</span>
+            </p>
 
-                <div className="mb-4 text-sm text-center">
-                    <p>👤 ユーザーID: {user}</p>
-                    <p>💬 会話ID: <span className="text-blue-600">{conversationId || "(なし)"}</span></p>
-                </div>
-
-                <div className="mb-6">
-                    <label className="block text-sm font-semibold mb-1">会話履歴：</label>
+            <div className="my-4">
+                <label className="text-sm font-medium text-gray-700">
+                    会話履歴：
                     <select
                         onChange={(e) => handleSelectConversation(e.target.value)}
                         value={conversationId || "new"}
-                        className="w-full p-2 border border-gray-300 rounded-md"
+                        className="ml-2 rounded border border-gray-300 px-2 py-1"
                     >
                         <option value="new">🆕 新しい会話</option>
                         {history.map((h) => (
@@ -147,44 +148,56 @@ export default function Home() {
                             </option>
                         ))}
                     </select>
-                </div>
-
-                <div className="space-y-2 mb-6 bg-white rounded-xl shadow px-4 py-4 min-h-[200px] leading-relaxed tracking-wide">
-                    {messages.map((m, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                            {m.startsWith("🧑") ? (
-                                <>
-                                    <div className="ml-auto flex items-center gap-2">
-                                        <p className="text-right text-blue-700">{m}</p>
-                                        <Image src={userImageUrl} alt="User" width={32} height={32} className="rounded-full" />
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <Image src="/Sofia_logo.png" alt="Sofia Logo" width={28} height={28} className="rounded-full" />
-                                    <p className="text-left text-purple-700 italic">{m}</p>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex gap-2">
-                    <input
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="メッセージを入力"
-                        className="flex-grow p-3 border border-gray-300 rounded-md"
-                    />
                     <button
-                        onClick={() => handleSend(input)}
-                        className="p-2 rounded-md bg-indigo-600 hover:bg-indigo-700 transition"
+                        onClick={() => conversationId && handleRenameConversation(conversationId)}
+                        className="ml-2 text-sm text-blue-600 underline"
                     >
-                        <Image src="/Sofia_logo.png" alt="Send" width={24} height={24} />
+                        名前変更
                     </button>
-                </div>
+                    <button
+                        onClick={() => conversationId && handleDeleteConversation(conversationId)}
+                        className="ml-2 text-sm text-red-600 underline"
+                    >
+                        削除
+                    </button>
+                </label>
+            </div>
+
+            <div
+                id="message-box"
+                ref={messageRef}
+                className="mx-auto max-w-2xl h-[400px] overflow-y-auto space-y-2 rounded bg-white p-4 text-left shadow"
+            >
+                {messages.map((m, i) => (
+                    <p key={i} className="whitespace-pre-wrap text-violet-700">
+                        {m}
+                    </p>
+                ))}
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-2">
+                {/* ユーザーアイコンのプレースホルダ */}
+                <Image
+                    src="/User_icon.png"
+                    alt="User"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                />
+                <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend(input)}
+                    placeholder="メッセージを入力"
+                    className="w-[400px] rounded border border-gray-300 px-4 py-3 shadow text-base"
+                />
+                <button
+                    onClick={() => handleSend(input)}
+                    className="p-2 rounded-md bg-indigo-600 hover:bg-indigo-700 transition text-white"
+                >
+                    <Image src="/Sofia_logo.png" alt="Send" width={24} height={24} />
+                </button>
             </div>
         </div>
     );
 }
-// これはデプロイ確認用のコメントです
