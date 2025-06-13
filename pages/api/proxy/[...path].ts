@@ -1,7 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== 'POST') {
+    if (req.method !== 'POST' && req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
@@ -19,12 +19,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         const apiRes = await fetch(targetUrl, {
-            method: 'POST',
+            method: req.method,
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: apiKey,
             },
-            body: JSON.stringify(req.body),
+            body: req.method === 'POST' ? JSON.stringify(req.body) : undefined,
         });
 
         const data = await apiRes.json();

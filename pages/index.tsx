@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -7,9 +6,8 @@ import { v4 as uuidv4 } from 'uuid'
 interface Message {
     id: string
     role: string
-    answer: string
-    question?: string
-    content?: string
+    content: string
+    created_at?: number
 }
 
 export default function Home() {
@@ -17,24 +15,26 @@ export default function Home() {
     const [messages, setMessages] = useState<Message[]>([])
     const [conversationId, setConversationId] = useState<string | null>(null)
     const [userId, setUserId] = useState<string>('unknown')
+    const userIdRef = useRef<string>('unknown')
     const [conversations, setConversations] = useState<any[]>([])
     const [selectedConversation, setSelectedConversation] = useState('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [pendingMessage, setPendingMessage] = useState<Message | null>(null)
     const [initialScroll, setInitialScroll] = useState(true)
+    const [fadeKey, setFadeKey] = useState(0)
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search)
         const uid = urlParams.get('user') || 'unknown'
         setUserId(uid)
+        userIdRef.current = uid
 
         const fetchConversations = async () => {
             const res = await fetch(`/api/proxy/conversations?user=${uid}`)
             const data = await res.json()
             setConversations(data.data || [])
         }
-
         fetchConversations()
     }, [])
 
@@ -43,17 +43,18 @@ export default function Home() {
         setPendingMessage(null)
         setConversationId(selectedConversation)
         setInitialScroll(true)
+        setFadeKey(prev => prev + 1)  // ✅ フェードアニメ切り替え用にキー変更
     }, [selectedConversation])
 
     useEffect(() => {
         if (!conversationId) return
+        const uid = userIdRef.current
         const fetchMessages = async () => {
-            const res = await fetch(`/api/proxy/messages?user=${userId}&conversation_id=${conversationId}`)
+            console.log('🔍 conversationId:', conversationId)
+            console.log('🔍 userId (ref):', uid)
+            const res = await fetch(`/api/proxy/messages?user=${encodeURIComponent(uid)}&conversation_id=${encodeURIComponent(conversationId)}`)
             const data = await res.json()
-            let loadedMessages = data.data || []
-
-            setMessages(pendingMessage ? [...loadedMessages, pendingMessage] : loadedMessages)
-            setPendingMessage(null)
+            setMessages(data.messages || [])  // ✅ クリアしてから上書き
         }
         fetchMessages()
     }, [conversationId])
@@ -72,8 +73,6 @@ export default function Home() {
         const newMessage: Message = {
             id: uuidv4(),
             role: 'user',
-            answer: query,
-            question: query,
             content: query
         }
         setMessages((prev) => [...prev, newMessage])
@@ -85,7 +84,7 @@ export default function Home() {
             query,
             response_mode: 'blocking',
             conversation_id: conversationId,
-            user: userId
+            user: userIdRef.current
         }
 
         const res = await fetch('/api/proxy/chat-messages', {
@@ -96,14 +95,18 @@ export default function Home() {
 
         const data = await res.json()
         if (data.conversation_id) {
-            setConversationId(data.conversation_id)
-            setSelectedConversation(data.conversation_id)
+            setTimeout(() => {
+                setConversationId(data.conversation_id)
+                setSelectedConversation(data.conversation_id)
+            }, 300)
         }
+
+        if (!data.answer) return
 
         const aiMessage: Message = {
             id: uuidv4(),
             role: 'assistant',
-            answer: data.answer || '(No answer)'
+            content: data.answer
         }
         setMessages((prev) => [...prev, aiMessage])
     }
@@ -163,14 +166,12 @@ export default function Home() {
                 ))}
             </div>
 
-            <div className="flex-1 flex flex-col h-full items-center">
+            <div key={fadeKey} className="flex-1 flex flex-col h-full items-center transition-opacity duration-500 opacity-100">
                 <div className="flex-1 w-full max-w-3xl overflow-y-auto p-6 space-y-4">
                     {messages.map((msg) => (
                         <div key={msg.id} className={msg.role === 'user' ? 'w-full flex justify-end' : 'w-full flex justify-start'}>
                             <div className={msg.role === 'user' ? 'max-w-xl p-4 rounded-xl shadow-md bg-white whitespace-pre-line leading-relaxed' : 'max-w-xl p-4 rounded-xl shadow-md bg-indigo-100 whitespace-pre-line leading-relaxed'}>
-                                {msg.role === 'user'
-                                    ? (msg.content || msg.question || msg.answer || '(無言)')
-                                    : (msg.answer || msg.content || '(No answer)')}
+                                {msg.content || '(No answer)'}
                             </div>
                         </div>
                     ))}
