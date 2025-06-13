@@ -31,7 +31,9 @@ export default function Home() {
         userIdRef.current = uid
 
         const fetchConversations = async () => {
-            const res = await fetch(`/api/proxy/conversations?user=${uid}`)
+            const res = await fetch(`/api/proxy/conversations?user=${uid}`, {
+                credentials: 'include'
+            })
             const data = await res.json()
             setConversations(data.data || [])
         }
@@ -43,7 +45,7 @@ export default function Home() {
         setPendingMessage(null)
         setConversationId(selectedConversation)
         setInitialScroll(true)
-        setFadeKey(prev => prev + 1)  // ✅ フェードアニメ切り替え用にキー変更
+        setFadeKey(prev => prev + 1)
     }, [selectedConversation])
 
     useEffect(() => {
@@ -52,9 +54,11 @@ export default function Home() {
         const fetchMessages = async () => {
             console.log('🔍 conversationId:', conversationId)
             console.log('🔍 userId (ref):', uid)
-            const res = await fetch(`/api/proxy/messages?user=${encodeURIComponent(uid)}&conversation_id=${encodeURIComponent(conversationId)}`)
+            const res = await fetch(`/api/proxy/messages?user=${encodeURIComponent(uid)}&conversation_id=${encodeURIComponent(conversationId)}`, {
+                credentials: 'include'
+            })
             const data = await res.json()
-            setMessages(data.messages || [])  // ✅ クリアしてから上書き
+            setMessages(data.messages || [])
         }
         fetchMessages()
     }, [conversationId])
@@ -91,6 +95,7 @@ export default function Home() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
+            credentials: 'include'
         })
 
         const data = await res.json()
@@ -120,7 +125,10 @@ export default function Home() {
     const handleDelete = async (id: string) => {
         const ok = confirm("この会話を削除しますか？")
         if (!ok) return
-        await fetch(`/api/proxy/conversations/${id}`, { method: 'DELETE' })
+        await fetch(`/api/proxy/conversations/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        })
         setConversations((prev) => prev.filter((c) => c.id !== id))
         if (id === selectedConversation) {
             setSelectedConversation('')
@@ -135,7 +143,8 @@ export default function Home() {
         await fetch(`/api/proxy/conversations/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newName })
+            body: JSON.stringify({ name: newName }),
+            credentials: 'include'
         })
         setConversations((prev) =>
             prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
