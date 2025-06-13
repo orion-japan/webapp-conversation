@@ -1,5 +1,4 @@
-// Sofia UI with Icon Header + Message Cache
-
+// v2 Sofia UI with Icon, Avatar, Styling Enhancements
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
@@ -15,6 +14,7 @@ export default function Home() {
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
     const [sending, setSending] = useState(false);
     const [cache, setCache] = useState<{ [id: string]: string[] }>({});
+    const userImageUrl = "/userAvatar.png"; // static avatar
 
     useEffect(() => {
         if (typeof queryUser === "string") setUser(queryUser);
@@ -121,11 +121,11 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-white text-gray-800 px-6 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white text-gray-800 px-6 py-8">
             <div className="max-w-3xl mx-auto">
                 <div className="flex items-center justify-center gap-4 mb-6">
-                    <Image src="/Sofia.png" alt="Sofia Icon" width={48} height={48} className="rounded-full" />
-                    <h1 className="text-3xl font-bold">Hello Sofia 🪷</h1>
+                    <Image src="/Sofia_logo.png" alt="Sofia Logo" width={42} height={42} className="rounded-full" />
+                    <h1 className="text-3xl font-bold tracking-wide">Hello Sofia 🪷</h1>
                 </div>
 
                 <div className="mb-4 text-sm text-center">
@@ -149,11 +149,23 @@ export default function Home() {
                     </select>
                 </div>
 
-                <div className="space-y-2 mb-6 bg-white rounded-xl shadow px-4 py-4 min-h-[200px]">
+                <div className="space-y-2 mb-6 bg-white rounded-xl shadow px-4 py-4 min-h-[200px] leading-relaxed tracking-wide">
                     {messages.map((m, i) => (
-                        <p key={i} className={m.startsWith("🧑") ? "text-right text-blue-700" : "text-left text-purple-700"}>
-                            {m}
-                        </p>
+                        <div key={i} className="flex items-start gap-2">
+                            {m.startsWith("🧑") ? (
+                                <>
+                                    <div className="ml-auto flex items-center gap-2">
+                                        <p className="text-right text-blue-700">{m}</p>
+                                        <Image src={userImageUrl} alt="User" width={32} height={32} className="rounded-full" />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Image src="/Sofia_logo.png" alt="Sofia Logo" width={28} height={28} className="rounded-full" />
+                                    <p className="text-left text-purple-700 italic">{m}</p>
+                                </div>
+                            )}
+                        </div>
                     ))}
                 </div>
 
@@ -162,13 +174,13 @@ export default function Home() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="メッセージを入力"
-                        className="flex-grow p-2 border border-gray-300 rounded-md"
+                        className="flex-grow p-3 border border-gray-300 rounded-md"
                     />
                     <button
                         onClick={() => handleSend(input)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                        className="p-2 rounded-md bg-indigo-600 hover:bg-indigo-700 transition"
                     >
-                        送信
+                        <Image src="/Sofia_logo.png" alt="Send" width={24} height={24} />
                     </button>
                 </div>
             </div>
