@@ -1,5 +1,4 @@
-// Sofia風 UI - React + TailwindCSS による全体設計
-// 前提：TailwindCSS が Vercel プロジェクトに適用済みであること
+// Sofia風 UI - React + TailwindCSS with 会話ID維持修正
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -13,6 +12,7 @@ export default function Home() {
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [user, setUser] = useState<string>("unknown");
     const [history, setHistory] = useState<{ id: string; name: string }[]>([]);
+    const [sending, setSending] = useState(false); // 🚩 送信中状態
 
     useEffect(() => {
         if (typeof queryUser === "string") setUser(queryUser);
@@ -73,7 +73,9 @@ export default function Home() {
     }, [conversationId]);
 
     const handleSend = async (text: string) => {
-        if (!text.trim()) return;
+        if (!text.trim() || sending) return;
+
+        setSending(true);
         setInput("");
 
         const res = await fetch("/api/proxy/chat-messages", {
@@ -95,13 +97,16 @@ export default function Home() {
             `😺 ${data.answer || "[応答なし]"}`,
         ]);
 
-        if (data.conversation_id && data.conversation_id !== conversationId) {
+        // ✅ 初回のみIDを更新
+        if (!conversationId && data.conversation_id) {
             setConversationId(data.conversation_id);
             setHistory((prev) => [
                 { id: data.conversation_id, name: text.slice(0, 10) },
                 ...prev,
             ]);
         }
+
+        setSending(false);
     };
 
     const handleSelectConversation = (id: string) => {
