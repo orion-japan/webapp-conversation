@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -5,8 +6,10 @@ import { v4 as uuidv4 } from 'uuid'
 
 interface Message {
     id: string
-    role: string
+    role?: string
     content: string
+    question?: string
+    answer?: string
     created_at?: number
 }
 
@@ -17,63 +20,48 @@ export default function Home() {
     const [userId, setUserId] = useState<string>('unknown')
     const [conversations, setConversations] = useState<any[]>([])
     const [selectedConversation, setSelectedConversation] = useState('')
-    const messagesEndRef = useRef<HTMLDivElement>(null)
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [pendingMessage, setPendingMessage] = useState<Message | null>(null)
-    const [initialScroll, setInitialScroll] = useState(true)
+    const messagesEndRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search)
-        const uid = urlParams.get('user') || 'unknown'
+        const uid = new URLSearchParams(window.location.search).get('user') || 'unknown'
         setUserId(uid)
-
-        const fetchConversations = async () => {
-            const res = await fetch(`/api/proxy/conversations?user=${uid}`)
-            const data = await res.json()
-            setConversations(data.data || [])
-        }
-        fetchConversations()
+        fetch(`/api/proxy/conversations?user=${uid}`)
+            .then(res => res.json())
+            .then(data => {
+                setConversations(data.data || [])
+                if (data.data?.length > 0) {
+                    const latest = data.data[0]
+                    setConversationId(latest.id)
+                    setSelectedConversation(latest.id)
+                }
+            })
     }, [])
 
     useEffect(() => {
-        if (!selectedConversation) return
-        setPendingMessage(null)
-        setConversationId(selectedConversation)
-        setInitialScroll(true)
-    }, [selectedConversation])
-
-    useEffect(() => {
         if (!conversationId) return
-        const fetchMessages = async () => {
-            const res = await fetch(`/api/proxy/messages?user=${userId}&conversation_id=${conversationId}`)
-            const data = await res.json()
-            setMessages((prev) => {
-                const existingIds = new Set(prev.map(m => m.id))
-                const merged = [...prev, ...(data.messages || []).filter(m => !existingIds.has(m.id))]
-                return merged
+        fetch(`/api/proxy/messages?user=${userId}&conversation_id=${conversationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data?.messages) {
+                    setMessages(data.messages)
+                }
             })
-        }
-        fetchMessages()
     }, [conversationId])
 
     useEffect(() => {
-        if (initialScroll) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
-            setInitialScroll(false)
-        } else {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
 
     const handleSend = async (query: string) => {
-        if (!query) return
-        const newMessage: Message = {
+        if (!query.trim()) return
+        const userMessage: Message = {
             id: uuidv4(),
             role: 'user',
-            content: query
+            content: query,
+            question: query,
         }
-        setMessages((prev) => [...prev, newMessage])
-        setPendingMessage(newMessage)
+        setMessages((prev) => [...prev, userMessage])
         setInput('')
 
         const payload = {
@@ -84,28 +72,24 @@ export default function Home() {
             user: userId
         }
 
-        const res = await fetch('/api/proxy/chat-messages', {
+        const res = await fetch('/api/proxy/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(payload)
         })
-
         const data = await res.json()
         if (data.conversation_id) {
-            setTimeout(() => {
-                setConversationId(data.conversation_id)
-                setSelectedConversation(data.conversation_id)
-            }, 300)
+            setConversationId(data.conversation_id)
+            setSelectedConversation(data.conversation_id)
         }
 
-        if (!data.answer) return
-
-        const aiMessage: Message = {
+        const assistantMessage: Message = {
             id: uuidv4(),
             role: 'assistant',
-            content: data.answer
+            content: data.answer,
+            answer: data.answer
         }
-        setMessages((prev) => [...prev, aiMessage])
+        setMessages((prev) => [...prev, assistantMessage])
     }
 
     const handleNewConversation = () => {
@@ -114,77 +98,54 @@ export default function Home() {
         setSelectedConversation('')
     }
 
-    const handleDelete = async (id: string) => {
-        const ok = confirm("この会話を削除しますか？")
-        if (!ok) return
-        await fetch(`/api/proxy/conversations/${id}`, { method: 'DELETE' })
-        setConversations((prev) => prev.filter((c) => c.id !== id))
-        if (id === selectedConversation) {
-            setSelectedConversation('')
-            setConversationId(null)
-            setMessages([])
-        }
-    }
-
-    const handleRename = async (id: string) => {
-        const newName = prompt("新しい会話名を入力してください")
-        if (!newName) return
-        await fetch(`/api/proxy/conversations/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newName })
-        })
-        setConversations((prev) =>
-            prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
-        )
-    }
-
     return (
         <div className="flex h-screen w-full overflow-hidden font-serif bg-gradient-to-b from-indigo-50 to-purple-50">
             <button className="absolute top-2 left-2 z-10 lg:hidden bg-white/70 px-3 py-1 rounded" onClick={() => setSidebarOpen(!sidebarOpen)}>
                 ☰
             </button>
 
-            <div className={`fixed lg:static top-0 left-0 h-full w-64 bg-white/80 shadow-lg p-4 overflow-y-auto transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-                <button onClick={handleNewConversation} className="mb-4 w-full bg-indigo-500 text-white py-2 rounded">＋ 新しい会話</button>
+            <div className={`fixed lg:static top-0 left-0 h-full w-64 bg-black text-white shadow-lg p-4 overflow-y-auto transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+                <button onClick={handleNewConversation} className="mb-4 w-full bg-white text-black py-2 rounded">＋ 新しい会話</button>
                 {conversations.map((conv) => (
-                    <div key={conv.id} className="group flex items-center justify-between px-2 py-1 rounded hover:bg-indigo-100">
+                    <div key={conv.id} className="group flex items-center justify-between px-2 py-1 rounded hover:bg-gray-800">
                         <span
-                            onClick={() => setSelectedConversation(conv.id)}
-                            className={conv.id === selectedConversation ? 'flex-1 cursor-pointer truncate bg-indigo-200' : 'flex-1 cursor-pointer truncate'}
-                        >
+                            onClick={() => {
+                                setConversationId(conv.id)
+                                setSelectedConversation(conv.id)
+                            }}
+                            className={conv.id === selectedConversation ? 'flex-1 cursor-pointer truncate text-yellow-400' : 'flex-1 cursor-pointer truncate'}>
                             {conv.name || conv.id.slice(0, 10)}
                         </span>
-                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleRename(conv.id)} className="text-sm hover:text-indigo-700">✏️</button>
-                            <button onClick={() => handleDelete(conv.id)} className="text-sm hover:text-red-500">🗑</button>
-                        </div>
                     </div>
                 ))}
             </div>
 
             <div className="flex-1 flex flex-col h-full items-center">
-                <div className="flex-1 w-full max-w-3xl overflow-y-auto p-6 space-y-4">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={msg.role === 'user' ? 'w-full flex justify-end' : 'w-full flex justify-start'}>
-                            <div className={msg.role === 'user' ? 'max-w-xl p-4 rounded-xl shadow-md bg-white whitespace-pre-line leading-relaxed' : 'max-w-xl p-4 rounded-xl shadow-md bg-indigo-100 whitespace-pre-line leading-relaxed'}>
-                                {msg.content || msg.answer || '(No answer)'}
+                <div className="flex-1 w-full max-w-4xl overflow-y-auto p-6 space-y-4">
+                    {messages.map((msg) => {
+                        const role = (msg.role || '').toLowerCase()
+                        const isUser = role === 'user' || (!!msg.question && !msg.answer)
+                        return (
+                            <div key={msg.id} className={isUser ? 'w-full flex justify-end' : 'w-full flex justify-start'}>
+                                <div className={`p-4 max-w-xl rounded-xl shadow-message border ${isUser ? 'ml-auto bg-sofia text-black border-sofia' : 'mr-auto bg-pink-100 text-black'}`} style={{ whiteSpace: 'pre-wrap' }}>
+                                    {msg.content || msg.question || msg.answer || '(No content)'}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                     <div ref={messagesEndRef} />
                 </div>
 
-                <div className="w-full max-w-3xl p-4 border-t bg-white/70 backdrop-blur flex">
+                <div className="w-full max-w-4xl p-4 border-t bg-white/90 backdrop-blur flex">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend(input)}
-                        className="flex-1 border rounded px-4 py-4 text-lg shadow-inner bg-white/90 resize-none h-28"
-                        placeholder="あなたの内なる響きを言葉にしてください..."
+                        className="flex-1 border rounded px-4 py-4 text-lg shadow-inner bg-white resize-none h-28"
+                        placeholder="メッセージを入力..."
                     />
-                    <button onClick={() => handleSend(input)} className="ml-2 px-6 py-4 bg-indigo-500 text-white rounded shadow text-lg">
-                        響かせる
+                    <button onClick={() => handleSend(input)} className="ml-2 px-6 py-4 bg-black text-white rounded shadow text-lg">
+                        送信
                     </button>
                 </div>
             </div>

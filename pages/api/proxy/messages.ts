@@ -1,36 +1,66 @@
-// pages/api/proxy/messages.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
+
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' })
+    const apiKey = process.env.DIFY_API_KEY;
+    const baseUrl = 'https://api.dify.ai/v1';
+
+    if (!apiKey || !apiKey.startsWith('Bearer ')) {
+        return res.status(500).json({ error: 'Invalid or missing API key' });
     }
 
-    const { user, conversation_id } = req.query
-    const apiKey = process.env.DIFY_API_KEY
+    if (req.method === 'POST') {
+        const { inputs, query, response_mode, user, conversation_id } = req.body;
 
-    if (!apiKey || typeof apiKey !== 'string') {
-        return res.status(500).json({ error: 'Missing API key in environment' })
+        try {
+            const response = await fetch(`${baseUrl}/chat-messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': apiKey,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ inputs, query, response_mode, user, conversation_id })
+            });
+
+            const data = await response.json();
+            console.log('📩 POST to /chat-messages', data);
+            return res.status(response.status).json(data);
+        } catch (error) {
+            console.error('❌ POST error:', error);
+            return res.status(500).json({ error: 'Failed to send chat message' });
+        }
     }
 
-    const targetUrl = `https://api.dify.ai/v1/messages?user=${user}&conversation_id=${conversation_id}`
+    if (req.method === 'GET') {
+        const { user, conversation_id } = req.query;
 
-    try {
-        const response = await fetch(targetUrl, {
-            method: 'GET',
-            headers: {
-                Authorization: `${apiKey}`, // Bearerなし
-                'Content-Type': 'application/json',
-            },
-        })
+        console.log('📥 messages.ts GET 呼び出し:', req.query);
 
-        const data = await response.json()
-        console.log('📥 raw API response:', data)
+        if (!user || typeof user !== 'string') {
+            return res.status(400).json({ error: 'Missing or invalid user parameter' });
+        }
 
-        // 👇 必要な構造に加工して返す
-        res.status(200).json({ messages: data.data || [] })
-    } catch (error) {
-        console.error('❌ Error fetching messages:', error)
-        res.status(500).json({ error: 'Failed to fetch messages' })
+        if (!conversation_id || typeof conversation_id !== 'string') {
+            return res.status(200).json({ messages: [] });
+        }
+
+        const url = `${baseUrl}/messages?user=${encodeURIComponent(user)}&conversation_id=${encodeURIComponent(conversation_id)}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': apiKey
+                },
+            });
+            const data = await response.json();
+            console.log('📦 GET応答:', data);
+            return res.status(response.status).json(data);
+        } catch (error) {
+            console.error('❌ GET error:', error);
+            return res.status(500).json({ error: 'Failed to fetch messages' });
+        }
     }
+
+    return res.status(405).json({ error: 'Method Not Allowed' });
 }
