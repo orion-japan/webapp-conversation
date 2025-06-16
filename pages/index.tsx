@@ -1,8 +1,11 @@
+// pages/index.tsx（V4構造・UI改修：user吹き出し短縮・間口拡大）
+
 'use client'
 
 import { useSearchParams } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 
 interface Message {
     id: string
@@ -107,11 +110,14 @@ function ChatPage({ userId }: { userId: string }) {
     return (
         <div className="flex h-screen">
             <Sidebar userId={userId} />
-            <div className="flex flex-col flex-1 bg-gradient-to-b from-purple-50 to-indigo-100 p-4">
-                <div className="flex-1 overflow-y-auto">
+            <div className="flex flex-col flex-1 bg-gradient-to-b from-purple-50 to-indigo-100 p-6">
+                <div className="flex-1 overflow-y-auto max-w-4xl mx-auto">
                     {messages.map((msg) => (
-                        <div key={msg.id} className={`mb-4 ${msg.role === 'user' ? 'text-right pr-4' : 'text-left'}`}>
-                            <div className={`inline-block px-4 py-2 rounded-xl whitespace-pre-wrap shadow-sm ${msg.role === 'user' ? 'bg-pink-200 text-gray-800' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                        <div key={msg.id} className={`mb-4 flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            {msg.role === 'assistant' && (
+                                <Image src="/Sofia_logo.png" alt="Sofia" width={48} height={48} className="hexagon-img" />
+                            )}
+                            <div className={`inline-block px-4 py-2 rounded-xl whitespace-pre-wrap shadow-sm max-w-[60%] ${msg.role === 'user' ? 'bg-pink-200 text-gray-800 text-right' : 'bg-white border border-gray-300 text-gray-700'}`}>
                                 {msg.answer}
                             </div>
                         </div>
@@ -123,7 +129,7 @@ function ChatPage({ userId }: { userId: string }) {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="メッセージを入力..."
-                        className="w-full max-w-2xl p-3 rounded-l-xl border border-gray-300 resize-none text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                        className="w-full max-w-3xl p-3 rounded-l-xl border border-gray-300 resize-none text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 min-h-[6rem]"
                         rows={4}
                     />
                     <button

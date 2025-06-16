@@ -18,34 +18,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #c7b8f7;
-    border-radius: 4px;
+    background-color: #ccc;
+    border-radius: 10px;
 }
 
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-/* 📦 メッセージバルーン共通スタイル */
-.user-bubble {
-    @apply text-right pr-4;
-}
-
-.assistant-bubble {
-    @apply text-left pl-4;
-}
-
-/* globals.css の末尾に追加 */
-
-.chat-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-}
-
-.message {
-    max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
+/* 🛡️ 六角形マスクアイコン */
+.hexagon-img {
+    width: 48px;
+    height: 48px;
+    clip-path: polygon(50% 0%,
+            93% 25%,
+            93% 75%,
+            50% 100%,
+            7% 75%,
+            7% 25%);
+    object-fit: cover;
 }
