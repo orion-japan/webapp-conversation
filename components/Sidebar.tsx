@@ -1,4 +1,4 @@
-// components/Sidebar.tsx（スマホ対応：モバイル非表示、会話履歴表示）
+'use client'
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
