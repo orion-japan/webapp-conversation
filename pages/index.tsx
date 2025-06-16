@@ -1,3 +1,5 @@
+// pages/index.tsx（スマホ幅拡張＆アイコン上配置対応済み）
+
 'use client'
 
 import { useSearchParams } from 'next/navigation'
@@ -125,14 +127,15 @@ function ChatPage({ userId }: { userId: string }) {
                 <div className="flex flex-col flex-1 bg-gradient-to-b from-purple-50 to-indigo-100 p-4 w-full">
                     <div className="flex-1 overflow-y-auto w-full max-w-4xl mx-auto">
                         {messages.map((msg) => (
-                            <div key={msg.id} className={`mb-4 flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div key={msg.id} className={`mb-4 flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                 {msg.role === 'assistant' && (
-                                    <Image src="/Sofia_logo.png" alt="Sofia" width={48} height={48} className="hexagon-img" />
+                                    <div className="mb-1">
+                                        <Image src="/Sofia_logo.png" alt="Sofia" width={40} height={40} className="mx-auto" />
+                                    </div>
                                 )}
                                 <div
-                                    className={`inline-block px-4 py-2 rounded-xl whitespace-pre-wrap shadow-sm max-w-[60%] ${msg.role === 'user'
-                                            ? 'bg-pink-200 text-gray-800 text-right'
-                                            : 'bg-white border border-gray-300 text-gray-700'
+                                    className={`px-4 py-2 rounded-xl whitespace-pre-wrap shadow-sm w-full max-w-full sm:max-w-[100%] ${msg.role === 'user'
+                                        ? 'bg-pink-200 text-gray-800 text-right' : 'bg-white border border-gray-300 text-gray-700'
                                         }`}
                                 >
                                     {msg.answer}
