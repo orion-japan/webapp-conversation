@@ -1,4 +1,3 @@
-
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,19 +12,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { inputs, query, response_mode, user, conversation_id } = req.body
 
         try {
+            // conversation_id が未指定なら含めない（新規作成扱い）
+            const body: any = { inputs, query, response_mode, user }
+            if (conversation_id) body.conversation_id = conversation_id
+
             const response = await fetch(`${baseUrl}/chat-messages`, {
                 method: 'POST',
                 headers: {
                     'Authorization': apiKey,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ inputs, query, response_mode, user, conversation_id })
+                body: JSON.stringify(body)
             })
 
             const data = await response.json()
             console.log('📨 POST応答（Difyそのまま）:', JSON.stringify(data, null, 2))
 
-            return res.status(200).json(data)
+            return res.status(response.status).json(data)
         } catch (err) {
             console.error('❌ POSTエラー:', err)
             return res.status(500).json({ error: 'Failed to send chat message' })

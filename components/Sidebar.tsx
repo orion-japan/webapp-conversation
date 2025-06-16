@@ -1,50 +1,64 @@
+
 'use client'
 
 import { useEffect, useState } from 'react'
 
-interface Conversation {
-    id: string
-    name?: string
-    updated_at?: number
+interface SidebarProps {
+    userId: string
+    onStartNewConversation: () => void
 }
 
-export default function Sidebar({ userId }: { userId: string }) {
-    const [conversations, setConversations] = useState<Conversation[]>([])
+export default function Sidebar({ userId, onStartNewConversation }: SidebarProps) {
+    const [conversations, setConversations] = useState<any[]>([])
 
     useEffect(() => {
-        if (!userId) return
-
         const fetchConversations = async () => {
             try {
                 const res = await fetch(`/api/proxy/conversations?user=${userId}&limit=20&sort_by=-updated_at`)
                 const data = await res.json()
                 if (Array.isArray(data.data)) {
                     setConversations(data.data)
-                } else {
-                    console.error("⚠️ 会話リスト取得失敗:", data)
                 }
-            } catch (error) {
-                console.error("❌ API取得エラー:", error)
+            } catch (err) {
+                console.error('💥 会話履歴取得失敗:', err)
             }
         }
 
         fetchConversations()
     }, [userId])
 
+    const handleSelectConversation = (id: string) => {
+        const url = new URL(window.location.href)
+        url.searchParams.set('conversation_id', id)
+        window.location.href = url.toString()
+    }
+
+    const handleNewConversation = () => {
+        const url = new URL(window.location.href)
+        url.searchParams.delete('conversation_id')
+        window.history.pushState({}, '', url.toString())
+        onStartNewConversation()
+    }
+
     return (
-        <div className="w-64 h-screen border-r p-4 overflow-y-auto bg-white">
-            <h2 className="text-xl font-bold mb-4">🗂 会話履歴</h2>
-            {conversations.map((conv) => (
-                <div
-                    key={conv.id}
-                    className="cursor-pointer px-3 py-2 rounded hover:bg-blue-100 text-sm"
-                    onClick={() => {
-                        window.location.href = `/chat/${conv.id}?user=${userId}`
-                    }}
-                >
-                    {conv.name || `ID: ${conv.id.slice(0, 8)}...`}
-                </div>
-            ))}
+        <div className="w-64 bg-black text-white p-4 overflow-y-auto">
+            <button
+                onClick={handleNewConversation}
+                className="bg-white text-black px-4 py-2 rounded mb-4 hover:bg-gray-200 w-full"
+            >
+                + 新しい会話
+            </button>
+            <div className="space-y-2">
+                {conversations.map((conv) => (
+                    <div
+                        key={conv.id}
+                        onClick={() => handleSelectConversation(conv.id)}
+                        className="cursor-pointer p-2 bg-gray-800 rounded hover:bg-gray-700"
+                    >
+                        {conv.name || '会話開始'}
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }
