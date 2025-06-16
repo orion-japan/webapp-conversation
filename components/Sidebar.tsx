@@ -1,64 +1,49 @@
+// components/Sidebar.tsx（スマホ対応：モバイル非表示、会話履歴表示）
 
-'use client'
-
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 interface SidebarProps {
     userId: string
-    onStartNewConversation: () => void
 }
 
-export default function Sidebar({ userId, onStartNewConversation }: SidebarProps) {
-    const [conversations, setConversations] = useState<any[]>([])
+interface Conversation {
+    id: string
+    name?: string
+}
+
+export default function Sidebar({ userId }: SidebarProps) {
+    const [conversations, setConversations] = useState<Conversation[]>([])
 
     useEffect(() => {
         const fetchConversations = async () => {
             try {
-                const res = await fetch(`/api/proxy/conversations?user=${userId}&limit=20&sort_by=-updated_at`)
-                const data = await res.json()
-                if (Array.isArray(data.data)) {
-                    setConversations(data.data)
-                }
+                const res = await fetch(`/api/proxy/conversations?user=${userId}`)
+                const json = await res.json()
+                setConversations(json.data || [])
             } catch (err) {
-                console.error('💥 会話履歴取得失敗:', err)
+                console.error('🛑 会話履歴の取得に失敗:', err)
             }
         }
 
         fetchConversations()
     }, [userId])
 
-    const handleSelectConversation = (id: string) => {
-        const url = new URL(window.location.href)
-        url.searchParams.set('conversation_id', id)
-        window.location.href = url.toString()
-    }
-
-    const handleNewConversation = () => {
-        const url = new URL(window.location.href)
-        url.searchParams.delete('conversation_id')
-        window.history.pushState({}, '', url.toString())
-        onStartNewConversation()
-    }
-
     return (
-        <div className="w-64 bg-black text-white p-4 overflow-y-auto">
-            <button
-                onClick={handleNewConversation}
-                className="bg-white text-black px-4 py-2 rounded mb-4 hover:bg-gray-200 w-full"
-            >
-                + 新しい会話
-            </button>
-            <div className="space-y-2">
-                {conversations.map((conv) => (
-                    <div
-                        key={conv.id}
-                        onClick={() => handleSelectConversation(conv.id)}
-                        className="cursor-pointer p-2 bg-gray-800 rounded hover:bg-gray-700"
-                    >
-                        {conv.name || '会話開始'}
-                    </div>
+        <div className="h-screen w-64 bg-black text-white overflow-y-auto p-4 hidden md:block">
+            <div className="mb-4 font-bold text-xl">💬 会話履歴</div>
+            <ul className="space-y-2">
+                {conversations.map((c) => (
+                    <li key={c.id}>
+                        <Link
+                            href={`/?user=${userId}&conversation_id=${c.id}`}
+                            className="block px-3 py-2 bg-gray-800 rounded hover:bg-gray-700 transition truncate"
+                        >
+                            {c.name || c.id.slice(0, 10)}
+                        </Link>
+                    </li>
                 ))}
-            </div>
+            </ul>
         </div>
     )
 }

@@ -1,4 +1,4 @@
-// pages/index.tsx（V4構造・UI改修：user吹き出し短縮・間口拡大）
+// pages/index.tsx（preset→入力のみ使用、会話名は固定）
 
 'use client'
 
@@ -32,10 +32,17 @@ export default function Home() {
 function ChatPage({ userId }: { userId: string }) {
     const searchParams = useSearchParams()
     const conversationId = searchParams.get('conversation_id')
+    const preset = searchParams.get('preset')
 
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (preset) {
+            setInput(preset)
+        }
+    }, [preset])
 
     useEffect(() => {
         const fetchMessages = async () => {
@@ -82,16 +89,19 @@ function ChatPage({ userId }: { userId: string }) {
         setMessages(prev => [...prev, userMessage])
 
         try {
+            const payload = {
+                user: userId,
+                conversation_id: conversationId,
+                query: input,
+                inputs: {},
+                response_mode: 'blocking',
+                name: conversationId ? undefined : "新しいチャット"
+            }
+
             const res = await fetch('/api/proxy/chat-messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user: userId,
-                    conversation_id: conversationId,
-                    query: input,
-                    inputs: {},
-                    response_mode: 'blocking',
-                }),
+                body: JSON.stringify(payload),
             })
             const data = await res.json()
             const assistantMessage = {
@@ -109,9 +119,11 @@ function ChatPage({ userId }: { userId: string }) {
 
     return (
         <div className="flex h-screen">
-            <Sidebar userId={userId} />
-            <div className="flex flex-col flex-1 bg-gradient-to-b from-purple-50 to-indigo-100 p-6">
-                <div className="flex-1 overflow-y-auto max-w-4xl mx-auto">
+            <div className="hidden md:block">
+                <Sidebar userId={userId} />
+            </div>
+            <div className="flex flex-col flex-1 bg-gradient-to-b from-purple-50 to-indigo-100 p-4 w-full">
+                <div className="flex-1 overflow-y-auto w-full max-w-4xl mx-auto">
                     {messages.map((msg) => (
                         <div key={msg.id} className={`mb-4 flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             {msg.role === 'assistant' && (
@@ -124,7 +136,7 @@ function ChatPage({ userId }: { userId: string }) {
                     ))}
                     <div ref={messagesEndRef} />
                 </div>
-                <div className="flex justify-center mt-4">
+                <div className="flex justify-center mt-4 px-2">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
